@@ -1,6 +1,6 @@
 const ALLOWED_ORIGINS = new Set([
-  "https://yuulog.org",
-  "https://www.yuulog.org",
+  "https://example.com",
+  "https://www.example.com",
   "http://localhost:4321",
   "http://localhost:8787",
 ]);

@@ -106,10 +106,10 @@ Content-Type: application/json
 
 ## Astro 前端接入示例
 
-假设 Worker 已部署到 `https://comments.yuulog.org`，在 `G:\zxykevin\Documents\Mizuki` 里的 Astro 页面中可以这样调用：
+假设 Worker 已部署到 `https://comments.example.com`，在 Astro 页面中可以这样调用：
 
 ```ts
-const apiBase = "https://comments.yuulog.org";
+const apiBase = "https://comments.example.com";
 const pagePath = window.location.pathname;
 
 const commentsResponse = await fetch(
