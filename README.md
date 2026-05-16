@@ -11,13 +11,13 @@
 ## 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## 创建 D1 数据库
 
 ```bash
-npx wrangler d1 create yuulog-comments-db
+pnpm exec wrangler d1 create yuulog-comments-db
 ```
 
 创建完成后，把命令返回的 `database_id` 写入 `wrangler.toml` 的 `database_id`。
@@ -27,19 +27,19 @@ npx wrangler d1 create yuulog-comments-db
 本地数据库：
 
 ```bash
-npm run db:migrate:local
+pnpm db:migrate:local
 ```
 
 远程数据库：
 
 ```bash
-npm run db:migrate:remote
+pnpm db:migrate:remote
 ```
 
 ## 配置 Turnstile secret
 
 ```bash
-npx wrangler secret put TURNSTILE_SECRET_KEY
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY
 ```
 
 如果没有设置 `TURNSTILE_SECRET_KEY`，代码会在开发阶段跳过 Turnstile 校验，方便本地联调。正式环境必须配置该 secret。
@@ -47,7 +47,7 @@ npx wrangler secret put TURNSTILE_SECRET_KEY
 ## 本地开发
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 默认开发地址通常是 `http://localhost:8787`。
@@ -55,7 +55,7 @@ npm run dev
 ## 部署
 
 ```bash
-npm run deploy
+pnpm deploy
 ```
 
 ## API
