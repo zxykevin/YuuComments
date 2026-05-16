@@ -1,0 +1,12 @@
+name = "yuulog-comments"
+main = "src/index.ts"
+compatibility_date = "2026-05-16"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yuulog-comments-db"
+database_id = "replace-with-your-d1-database-id"
+migrations_dir = "migrations"
+
+# Add the Turnstile secret with:
+# npx wrangler secret put TURNSTILE_SECRET_KEY
