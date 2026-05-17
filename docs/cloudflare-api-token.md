@@ -61,6 +61,43 @@ $env:CLOUDFLARE_API_TOKEN = "你的 Cloudflare API token"
 
 不要把这个 token 写进 Git，也不要提交到仓库。
 
+## `API token templates` 是什么
+
+你在 Cloudflare 页面里看到的 `API token templates`，可以理解成 Cloudflare 预设好的“常见用途权限套餐”。它们不是另一种 token，而是帮你把权限表单先填好，之后仍然可以继续修改。Cloudflare 当前常见模板包括：
+
+- `Edit Zone DNS`
+  - 给 DNS 写入权限
+- `Read billing info`
+  - 只读账单信息
+- `Read analytics and logs`
+  - 读取分析和日志
+- `Edit Cloudflare Workers`
+  - 写 Worker、KV、R2 等相关权限
+- `Edit load balancing configuration`
+  - 修改负载均衡配置
+- `WordPress`
+  - WordPress 常用权限组合
+- `Create Additional Tokens`
+  - 允许再创建其他 API token
+- `Read All Resources`
+  - 读取所有资源
+
+这些模板适合常见场景，但它们都不是 YuuComments 自动创建 Turnstile widget 的精确需求。
+
+对 YuuComments 来说，请优先使用：
+
+```text
+Create Custom Token
+```
+
+然后手动添加：
+
+```text
+Account -> Turnstile -> Edit
+```
+
+这样权限最小，也最贴合当前脚本需要。
+
 ## 自动创建 Turnstile 时还需要什么
 
 Cloudflare 要求普通 Turnstile widget 至少绑定一个 hostname。部署脚本会自动附带：

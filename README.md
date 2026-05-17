@@ -91,6 +91,8 @@ $env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
 其中 `CLOUDFLARE_API_TOKEN` 至少需要 `Account -> Turnstile -> Edit` 权限。  
 `TURNSTILE_HOSTNAMES` 只写 hostname，不要带 `https://`；脚本会自动额外加入 `127.0.0.1` 和 `localhost`。
 
+在 Cloudflare 的 `API token templates` 页面里，模板只是常见用途的预设权限套餐。YuuComments 自动创建 Turnstile widget 时，请选择 `Create Custom Token`，不要直接套用现成模板；当前需要的最小权限是 `Account -> Turnstile -> Edit`。
+
 ### 第六步：开始一键部署
 
 在终端中输入：
