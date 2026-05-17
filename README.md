@@ -116,7 +116,7 @@ pnpm deploy:backend
 然后在需要显示评论区的页面中加入：
 
 ```html
-<div id="yuulog-comments" data-page-key="/posts/example/"></div>
+<div id="yuucomments" data-page-key="/posts/example/"></div>
 <link rel="stylesheet" href="/comments/comments.css" />
 <script src="/comments/yuucomments.config.js"></script>
 <script src="/comments/comments.js" defer></script>
@@ -159,7 +159,7 @@ pnpm dev
 
 ```html
 <div
-  id="yuulog-comments"
+  id="yuucomments"
   data-page-key="/posts/example/"
 ></div>
 
@@ -169,6 +169,8 @@ pnpm dev
 ```
 
 部署完成后，把 `dist/frontend/` 里的三个文件发布到站点 `/comments/` 目录即可。`yuucomments.config.js` 只包含公开的 Worker API 地址和 Turnstile Site Key。
+
+旧版 `id="yuulog-comments"` 仍然兼容，但新接入请优先使用 `id="yuucomments"`。
 
 Astro：
 

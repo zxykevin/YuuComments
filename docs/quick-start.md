@@ -291,7 +291,7 @@ secrets.production.json
 部署完成后，脚本还会输出最简普通 HTML 接入方式：
 
 ```html
-<div id="yuulog-comments" data-page-key="/posts/example/"></div>
+<div id="yuucomments" data-page-key="/posts/example/"></div>
 <link rel="stylesheet" href="/comments/comments.css" />
 <script src="/comments/yuucomments.config.js"></script>
 <script src="/comments/comments.js" defer></script>
