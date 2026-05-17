@@ -10,9 +10,11 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $workerRoot = $PSScriptRoot
 $wranglerConfigPath = Join-Path $workerRoot "wrangler.toml"
 $wranglerExamplePath = Join-Path $workerRoot "wrangler.toml.example"
+$wranglerConfigArg = "worker/wrangler.toml"
 $secretsPath = Join-Path $repoRoot $SecretsFile
 $frontendSourceRoot = Join-Path $repoRoot "frontend\vanilla"
 $frontendDistRoot = Join-Path $repoRoot "dist\frontend"
+$workerExists = $true
 
 Push-Location $repoRoot
 
@@ -47,11 +49,18 @@ function Get-RequiredSecrets {
 }
 
 function Get-ConfiguredSecrets {
-  $json = pnpm exec wrangler secret list --format json
+  $output = @(pnpm exec wrangler secret list --format json --config $wranglerConfigArg 2>&1)
 
   if ($LASTEXITCODE -ne 0) {
+    if (($output -join "`n") -match 'Worker ".*" not found') {
+      $script:workerExists = $false
+      return @()
+    }
+
     throw "Failed to read configured Worker secrets."
   }
+
+  $json = $output -join "`n"
 
   if ([string]::IsNullOrWhiteSpace($json)) {
     return @()
@@ -264,28 +273,51 @@ function Read-PlainSecret {
   }
 }
 
-function Upload-Secrets {
+function New-TempSecretsFile {
   param(
     [Parameter(Mandatory = $true)]
     [hashtable]$Secrets
   )
 
   if ($Secrets.Count -eq 0) {
-    return
+    return $null
   }
 
-  $json = $Secrets | ConvertTo-Json -Compress
+  $tempSecretsPath = Join-Path ([System.IO.Path]::GetTempPath()) ("yuucomments-secrets-" + [guid]::NewGuid().ToString("N") + ".json")
+  $Secrets | ConvertTo-Json -Compress | Set-Content $tempSecretsPath
+  return $tempSecretsPath
+}
 
-  Invoke-CheckedCommand "Uploading required secrets" {
-    $json | pnpm exec wrangler secret bulk
+function Upload-Secrets {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$SecretsFile
+  )
+
+  try {
+    Invoke-CheckedCommand "Uploading required secrets" {
+      pnpm exec wrangler secret bulk $SecretsFile --config $wranglerConfigArg
+    }
+  } finally {
+    if (Test-Path $SecretsFile) {
+      Remove-Item $SecretsFile
+    }
   }
 }
 
 function Invoke-DeployWorker {
+  param(
+    [string]$SecretsFile
+  )
+
   Write-Host ""
   Write-Host "==> Deploying Worker"
 
-  $output = @(& pnpm deploy 2>&1)
+  if ([string]::IsNullOrWhiteSpace($SecretsFile)) {
+    $output = @(& pnpm exec wrangler deploy --config $wranglerConfigArg 2>&1)
+  } else {
+    $output = @(& pnpm exec wrangler deploy --config $wranglerConfigArg --secrets-file $SecretsFile 2>&1)
+  }
   $exitCode = $LASTEXITCODE
 
   foreach ($line in $output) {
@@ -415,6 +447,8 @@ if ([string]::IsNullOrWhiteSpace($publicTurnstileSiteKey)) {
 $localSecrets["PUBLIC_TURNSTILE_SITE_KEY"] = $publicTurnstileSiteKey
 Save-LocalSecrets -Secrets $localSecrets -Path $secretsPath
 
+$deploySecretsFile = $null
+
 if ($missingSecrets.Count -gt 0) {
   $secretsToUpload = @{}
 
@@ -482,7 +516,13 @@ if ($missingSecrets.Count -gt 0) {
   }
 
   Save-LocalSecrets -Secrets $localSecrets -Path $secretsPath
-  Upload-Secrets -Secrets $secretsToUpload
+  $tempSecretsFile = New-TempSecretsFile -Secrets $secretsToUpload
+
+  if ($workerExists) {
+    Upload-Secrets -SecretsFile $tempSecretsFile
+  } else {
+    $deploySecretsFile = $tempSecretsFile
+  }
 }
 
 Invoke-CheckedCommand "Running TypeScript checks" {
@@ -493,7 +533,13 @@ Invoke-CheckedCommand "Applying remote D1 migrations" {
   pnpm db:migrate:remote
 }
 
-$deployOutput = Invoke-DeployWorker
+try {
+  $deployOutput = Invoke-DeployWorker -SecretsFile $deploySecretsFile
+} finally {
+  if ($deploySecretsFile -and (Test-Path $deploySecretsFile)) {
+    Remove-Item $deploySecretsFile
+  }
+}
 $deployText = $deployOutput -join "`n"
 $workerUrlMatch = [regex]::Match($deployText, 'https://[^\s]+')
 $workerUrl = if ($workerUrlMatch.Success) { $workerUrlMatch.Value.TrimEnd(".") } else { $null }
