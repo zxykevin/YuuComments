@@ -147,7 +147,10 @@ function Set-D1DatabaseId {
   $updated = [regex]::Replace(
     $config,
     '(?m)^(\s*database_id\s*=\s*")[^"]+(")',
-    ('$1' + $DatabaseId + '$2'),
+    {
+      param($match)
+      return $match.Groups[1].Value + $DatabaseId + $match.Groups[2].Value
+    },
     1
   )
 
