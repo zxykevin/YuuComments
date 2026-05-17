@@ -109,7 +109,9 @@ function Get-D1DatabaseByName {
     throw "Failed to list D1 databases."
   }
 
-  return @($json | ConvertFrom-Json) |
+  $databases = $json | ConvertFrom-Json
+
+  return @($databases) |
     Where-Object { $_.name -eq $Name } |
     Select-Object -First 1
 }
