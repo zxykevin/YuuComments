@@ -210,6 +210,9 @@ $env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
 - `TURNSTILE_HOSTNAMES` 只写 hostname，不要写 `https://`
 - 脚本会自动额外加入 `127.0.0.1` 和 `localhost`
 
+在 Cloudflare 创建 token 页面中，`API token templates` 是常见用途的预设权限套餐，不是 YuuComments 这里要用的专用类型。  
+请点击 `Create Custom Token`，再手动添加 `Account -> Turnstile -> Edit`，这样权限最小也最准确。
+
 如果没有提前设置 `TURNSTILE_HOSTNAMES`，脚本会在首次创建 widget 时提示你输入正式站点 hostname。
 
 方式 B：直接提供现有 Turnstile key
