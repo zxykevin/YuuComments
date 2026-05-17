@@ -266,6 +266,70 @@ function Get-TurnstileWidgetDetails {
   }
 }
 
+function Get-TurnstileHostnames {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $rawHostnames = [Environment]::GetEnvironmentVariable("TURNSTILE_HOSTNAMES")
+
+  if ([string]::IsNullOrWhiteSpace($rawHostnames) -and (Test-Path $Path)) {
+    $content = Get-Content $Path -Raw | ConvertFrom-Json
+
+    if ($content.PSObject.Properties.Name -contains "TURNSTILE_HOSTNAMES") {
+      $rawHostnames = $content.TURNSTILE_HOSTNAMES
+    }
+  }
+
+  if ($rawHostnames -is [System.Array]) {
+    return @($rawHostnames | ForEach-Object { "$_".Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  }
+
+  if ([string]::IsNullOrWhiteSpace($rawHostnames)) {
+    $rawHostnames = Read-Host "Enter Turnstile hostnames (comma-separated, for example example.com,www.example.com)"
+  }
+
+  return @("$rawHostnames".Split(",") | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function New-TurnstileWidget {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$AccountId,
+    [Parameter(Mandatory = $true)]
+    [string]$ApiToken,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Hostnames
+  )
+
+  if ($Hostnames.Count -eq 0) {
+    throw "At least one Turnstile hostname is required to create a widget."
+  }
+
+  $headers = @{
+    Authorization = "Bearer $ApiToken"
+    "Content-Type" = "application/json"
+  }
+  $body = @{
+    name = "YuuComments"
+    mode = "managed"
+    domains = @($Hostnames)
+  } | ConvertTo-Json -Compress
+
+  $response = Invoke-RestMethod `
+    -Uri "https://api.cloudflare.com/client/v4/accounts/$AccountId/challenges/widgets" `
+    -Headers $headers `
+    -Method Post `
+    -Body $body
+
+  if (-not $response.success -or -not $response.result) {
+    throw "Failed to create Turnstile widget."
+  }
+
+  return $response.result
+}
+
 function New-AdminToken {
   $bytes = New-Object byte[] 32
   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -428,15 +492,38 @@ $localSecrets = Get-LocalSecrets -Path $secretsPath
 $accountId = @($identity.accounts)[0].id
 $apiToken = [Environment]::GetEnvironmentVariable("CLOUDFLARE_API_TOKEN")
 $publicTurnstileSiteKey = [Environment]::GetEnvironmentVariable("PUBLIC_TURNSTILE_SITE_KEY")
+$localTurnstileSiteKey = Get-SecretValueFromFile `
+  -Name "PUBLIC_TURNSTILE_SITE_KEY" `
+  -Path $secretsPath
+$localTurnstileSecretKey = Get-SecretValueFromFile `
+  -Name "TURNSTILE_SECRET_KEY" `
+  -Path $secretsPath
+$createdTurnstileWidget = $false
 
 if ([string]::IsNullOrWhiteSpace($publicTurnstileSiteKey)) {
-  $publicTurnstileSiteKey = Get-SecretValueFromFile `
-    -Name "PUBLIC_TURNSTILE_SITE_KEY" `
-    -Path $secretsPath
+  $publicTurnstileSiteKey = $localTurnstileSiteKey
 }
 
 $turnstileWidget = $null
-if (-not [string]::IsNullOrWhiteSpace($apiToken) -and -not [string]::IsNullOrWhiteSpace($accountId)) {
+if (
+  [string]::IsNullOrWhiteSpace($localTurnstileSiteKey) -and
+  [string]::IsNullOrWhiteSpace($localTurnstileSecretKey)
+) {
+  if ([string]::IsNullOrWhiteSpace($apiToken)) {
+    $apiToken = Read-PlainSecret "Enter CLOUDFLARE_API_TOKEN to create Turnstile widget"
+  }
+
+  if ([string]::IsNullOrWhiteSpace($apiToken)) {
+    throw "CLOUDFLARE_API_TOKEN is required to create a Turnstile widget automatically."
+  }
+
+  $turnstileHostnames = @(Get-TurnstileHostnames -Path $secretsPath)
+  $turnstileWidget = New-TurnstileWidget `
+    -AccountId $accountId `
+    -ApiToken $apiToken `
+    -Hostnames $turnstileHostnames
+  $createdTurnstileWidget = $true
+} elseif (-not [string]::IsNullOrWhiteSpace($apiToken) -and -not [string]::IsNullOrWhiteSpace($accountId)) {
   $turnstileWidget = Get-TurnstileWidgetDetails `
     -AccountId $accountId `
     -ApiToken $apiToken `
@@ -446,6 +533,10 @@ if (-not [string]::IsNullOrWhiteSpace($apiToken) -and -not [string]::IsNullOrWhi
 if ($turnstileWidget) {
   if ([string]::IsNullOrWhiteSpace($publicTurnstileSiteKey)) {
     $publicTurnstileSiteKey = $turnstileWidget.sitekey
+  }
+
+  if ($createdTurnstileWidget -and -not [string]::IsNullOrWhiteSpace($turnstileWidget.secret)) {
+    $localSecrets["TURNSTILE_SECRET_KEY"] = $turnstileWidget.secret
   }
 
   if (
@@ -544,6 +635,22 @@ if ($missingSecrets.Count -gt 0) {
     Upload-Secrets -SecretsFile $tempSecretsFile
   } else {
     $deploySecretsFile = $tempSecretsFile
+  }
+}
+
+if (
+  $createdTurnstileWidget -and
+  -not [string]::IsNullOrWhiteSpace($turnstileWidget.secret) -and
+  $missingSecrets -notcontains "TURNSTILE_SECRET_KEY"
+) {
+  $turnstileSecretUpdate = New-TempSecretsFile -Secrets @{
+    TURNSTILE_SECRET_KEY = $turnstileWidget.secret
+  }
+
+  if ($workerExists) {
+    Upload-Secrets -SecretsFile $turnstileSecretUpdate
+  } else {
+    $deploySecretsFile = $turnstileSecretUpdate
   }
 }
 
