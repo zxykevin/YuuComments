@@ -36,6 +36,18 @@ function Invoke-CheckedCommand {
   }
 }
 
+function Set-Utf8File {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Content
+  )
+
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
 function Get-RequiredSecrets {
   $config = Get-Content $wranglerConfigPath -Raw
   $match = [regex]::Match($config, '(?ms)^\[secrets\]\s*required\s*=\s*\[(.*?)\]')
@@ -143,7 +155,7 @@ function Set-D1DatabaseId {
     throw "Failed to update database_id in worker/wrangler.toml."
   }
 
-  Set-Content $wranglerConfigPath $updated -NoNewline
+  Set-Utf8File -Path $wranglerConfigPath -Content $updated
 }
 
 function Get-SecretValueFromFile {
@@ -190,7 +202,7 @@ function Save-LocalSecrets {
     [string]$Path
   )
 
-  $Secrets | ConvertTo-Json | Set-Content $Path
+  Set-Utf8File -Path $Path -Content ($Secrets | ConvertTo-Json)
 }
 
 function Get-TurnstileWidgetDetails {
@@ -284,7 +296,7 @@ function New-TempSecretsFile {
   }
 
   $tempSecretsPath = Join-Path ([System.IO.Path]::GetTempPath()) ("yuucomments-secrets-" + [guid]::NewGuid().ToString("N") + ".json")
-  $Secrets | ConvertTo-Json -Compress | Set-Content $tempSecretsPath
+  Set-Utf8File -Path $tempSecretsPath -Content ($Secrets | ConvertTo-Json -Compress)
   return $tempSecretsPath
 }
 
@@ -352,7 +364,7 @@ window.YuuCommentsConfig = {
   turnstileSiteKey: "$TurnstileSiteKey"
 };
 "@
-  Set-Content (Join-Path $frontendDistRoot "yuucomments.config.js") $config
+  Set-Utf8File -Path (Join-Path $frontendDistRoot "yuucomments.config.js") -Content $config
 
   Invoke-CheckedCommand "Checking generated frontend config syntax" {
     node --check (Join-Path $frontendDistRoot "yuucomments.config.js")
