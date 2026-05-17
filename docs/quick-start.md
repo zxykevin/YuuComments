@@ -191,27 +191,47 @@ pnpm exec wrangler login
 pnpm exec wrangler whoami
 ```
 
-### 4.3 准备 Turnstile secret
+### 4.3 准备 Turnstile
 
 你有三种方式，任选一种。
 
-方式 A：临时环境变量
+方式 A：让脚本自动创建新的 Turnstile widget
+
+如果你希望第一次部署时由脚本自动创建一个名为 `YuuComments` 的 widget，需要先准备：
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = "你的 Cloudflare API token"
+$env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
+```
+
+要求：
+
+- `CLOUDFLARE_API_TOKEN` 至少有 `Account -> Turnstile -> Edit` 权限
+- `TURNSTILE_HOSTNAMES` 只写 hostname，不要写 `https://`
+- 脚本会自动额外加入 `127.0.0.1` 和 `localhost`
+
+如果没有提前设置 `TURNSTILE_HOSTNAMES`，脚本会在首次创建 widget 时提示你输入正式站点 hostname。
+
+方式 B：直接提供现有 Turnstile key
+
+临时环境变量：
 
 ```powershell
 $env:TURNSTILE_SECRET_KEY = "你的 Turnstile secret key"
 ```
 
-方式 B：创建本地文件 `secrets.production.json`
+或者创建本地文件 `secrets.production.json`：
 
 ```json
 {
+  "PUBLIC_TURNSTILE_SITE_KEY": "你的 Turnstile site key",
   "TURNSTILE_SECRET_KEY": "你的 Turnstile secret key"
 }
 ```
 
 方式 C：什么都不提前写，等部署脚本执行时在终端里输入。
 
-推荐新手用方式 B，因为：
+推荐新手优先使用方式 A 或方式 B，因为：
 
 - 以后重复部署更省事
 - 这个文件已经被 `.gitignore` 忽略，不会误提交

@@ -69,7 +69,7 @@ pnpm exec wrangler login
 你可以任选一种方式：
 
 1. 先把 key 写入本地 `secrets.production.json`
-2. 设置环境变量
+2. 提前设置 `CLOUDFLARE_API_TOKEN`，让脚本自动创建一个名为 `YuuComments` 的 Turnstile widget
 3. 什么都不提前写，等脚本运行时在终端里按提示输入
 
 示例：
@@ -80,6 +80,16 @@ pnpm exec wrangler login
   "TURNSTILE_SECRET_KEY": "your-turnstile-secret-key"
 }
 ```
+
+如果希望脚本自动创建 Turnstile widget，还需要先设置：
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = "你的 Cloudflare API token"
+$env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
+```
+
+其中 `CLOUDFLARE_API_TOKEN` 至少需要 `Account -> Turnstile -> Edit` 权限。  
+`TURNSTILE_HOSTNAMES` 只写 hostname，不要带 `https://`；脚本会自动额外加入 `127.0.0.1` 和 `localhost`。
 
 ### 第六步：开始一键部署
 
@@ -130,7 +140,7 @@ pnpm deploy:backend
 - 创建远端 D1（若不存在）
 - 回写 `worker/wrangler.toml` 中的 `database_id`
 - 自动生成或复用 `ADMIN_TOKEN`
-- 自动读取、提示输入或尽量远程发现 Turnstile key
+- 自动复用已有 Turnstile key，或在提供 `CLOUDFLARE_API_TOKEN` 时创建 `YuuComments` widget
 - 上传缺失的 Worker secrets
 - 执行远程 migration
 - 部署 Worker
