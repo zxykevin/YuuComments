@@ -1,0 +1,23 @@
+---
+interface Props {
+  pageKey?: string;
+  apiBase: string;
+  siteKey: string;
+}
+
+const {
+  pageKey = Astro.url.pathname,
+  apiBase,
+  siteKey,
+} = Astro.props;
+---
+
+<div
+  id="yuulog-comments"
+  data-page-key={pageKey}
+  data-api-base={apiBase}
+  data-site-key={siteKey}
+></div>
+
+<link rel="stylesheet" href="/comments/comments.css" />
+<script src="/comments/comments.js" defer></script>

@@ -1,14 +1,14 @@
 # 星轨手札全栈部署教程
 
-这份教程面向第一次部署博客的新手，目标是把下面两个仓库一起部署成功：
+这份教程面向第一次部署博客的新手，目标是把下面两个项目一起部署成功：
 
 - 前端仓库：`Mizuki`
-- 评论后端仓库：`yuulog-comments`
+- 评论后端仓库：`YuuComments`
 
 最终效果是：
 
 1. `Mizuki` 负责生成并发布博客静态页面。
-2. `yuulog-comments` 负责提供评论 API、保存评论数据、处理后台审核。
+2. `YuuComments` 负责提供评论 API、保存评论数据、处理后台审核。
 3. 前端通过环境变量访问后端，评论框通过 Cloudflare Turnstile 做人机验证。
 
 本文默认你使用：
@@ -50,23 +50,23 @@
   - `PUBLIC_TURNSTILE_SITE_KEY`
 - 如果 `PUBLIC_TURNSTILE_SITE_KEY` 没配，前端会直接提示“评论验证未配置，暂时无法提交评论”。
 
-### 1.2 评论后端仓库 `yuulog-comments`
+### 1.2 评论后端仓库 `YuuComments`
 
 这是一个基于 Cloudflare Workers、TypeScript 和 D1 的评论后端。
 
 它的关键文件有：
 
-- `wrangler.toml`
+- `worker/wrangler.toml`
   - Worker 名称、D1 数据库绑定、必需 secrets
-- `scripts/deploy-backend.ps1`
+- `worker/deploy-backend.ps1`
   - 一键部署脚本
-- `migrations/`
+- `worker/migrations/`
   - 数据库迁移文件
-- `src/utils/cors.ts`
+- `worker/src/utils/cors.ts`
   - 前端域名白名单
-- `src/routes/createComment.ts`
+- `worker/src/routes/createComment.ts`
   - 评论提交逻辑
-- `src/routes/adminComments.ts`
+- `worker/src/routes/adminComments.ts`
   - 后台查询和审核接口
 
 后端提供的主要接口：
@@ -82,7 +82,7 @@ PATCH  /api/admin/comments/:id/status
 
 - 正式环境必须配置 `TURNSTILE_SECRET_KEY`。
 - 管理接口依赖 `ADMIN_TOKEN`。
-- 当前 `src/utils/cors.ts` 里的生产白名单还是示例域名：
+- 当前 `worker/src/utils/cors.ts` 里的生产白名单还是示例域名：
 
 ```ts
 const ALLOWED_ORIGINS = new Set([
@@ -173,7 +173,8 @@ corepack enable
 ### 4.1 进入后端仓库
 
 ```powershell
-cd path\to\yuulog-comments
+cd path\to\YuuComments
+pnpm setup
 ```
 
 ### 4.2 登录 Cloudflare
@@ -220,7 +221,7 @@ $env:TURNSTILE_SECRET_KEY = "你的 Turnstile secret key"
 打开：
 
 ```text
-src/utils/cors.ts
+worker/src/utils/cors.ts
 ```
 
 把示例域名替换成你的真实前端域名，例如：
@@ -251,17 +252,21 @@ pnpm deploy:backend
 1. 安装依赖
 2. 检查 Cloudflare 登录状态
 3. 如果 D1 数据库不存在，则自动创建
-4. 把真实的 `database_id` 写回 `wrangler.toml`
+4. 把真实的 `database_id` 写回 `worker/wrangler.toml`
 5. 自动生成 `ADMIN_TOKEN`
 6. 上传缺失的 Worker secrets
 7. 执行远程数据库迁移
 8. 部署 Worker
+9. 生成 `dist/frontend/comments.js`
+10. 生成 `dist/frontend/comments.css`
+11. 生成 `dist/frontend/yuucomments.config.js`
 
 第一次部署成功后，你会得到：
 
 - 一个 Worker 地址
 - 一个 D1 数据库
 - 一个本地保存的 `ADMIN_TOKEN`
+- 一组可以直接发布的前端文件
 
 ### 4.6 记住这两个值
 
@@ -282,6 +287,17 @@ secrets.production.json
 ```
 
 不要把它提交到 Git，也不要发给别人。
+
+部署完成后，脚本还会输出最简普通 HTML 接入方式：
+
+```html
+<div id="yuulog-comments" data-page-key="/posts/example/"></div>
+<link rel="stylesheet" href="/comments/comments.css" />
+<script src="/comments/yuucomments.config.js"></script>
+<script src="/comments/comments.js" defer></script>
+```
+
+把 `dist/frontend/` 里的三个文件发布到自己网站的 `/comments/` 目录即可。
 
 ## 5. 第二步：本地验证后端是否正常
 
@@ -351,6 +367,13 @@ Copy-Item .env.example .env
 ```env
 PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
 PUBLIC_TURNSTILE_SITE_KEY=你的 Turnstile site key
+```
+
+部署脚本也会在终端直接输出这两行，方便复制到 Astro / Mizuki：
+
+```env
+PUBLIC_COMMENTS_API_BASE_URL=<Worker API URL>
+PUBLIC_TURNSTILE_SITE_KEY=<Turnstile Site Key>
 ```
 
 如果你暂时不用内容分离：
@@ -470,7 +493,7 @@ PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
 
 ### 8.2 后端要允许正确的前端域名
 
-确认后端 `src/utils/cors.ts` 包含：
+确认后端 `worker/src/utils/cors.ts` 包含：
 
 ```ts
   "https://example.com",
@@ -482,7 +505,7 @@ PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
 ### 8.3 改了 CORS 后要重新部署后端
 
 ```powershell
-cd path\to\yuulog-comments
+cd path\to\YuuComments
 pnpm deploy:backend
 ```
 
@@ -554,7 +577,7 @@ Authorization: Bearer <ADMIN_TOKEN>
 1. `PUBLIC_COMMENTS_API_BASE_URL` 是否写对
 2. Worker 是否真的已经部署
 3. 浏览器开发者工具里是否出现 CORS 报错
-4. 后端 `src/utils/cors.ts` 是否加了真实前端域名
+4. 后端 `worker/src/utils/cors.ts` 是否加了真实前端域名
 
 ### 10.2 评论框显示“评论验证未配置，暂时无法提交评论”
 
@@ -578,6 +601,13 @@ PUBLIC_TURNSTILE_SITE_KEY
 2. 后端用的是不是同一个 Turnstile 应用对应的 `secret key`
 3. `TURNSTILE_SECRET_KEY` 是否已经作为 Worker secret 上传
 
+补充说明：
+
+- Turnstile Site Key 是公开 key，可以放前端
+- Turnstile Secret Key 是私密 key，只能放 Worker secret
+- `ADMIN_TOKEN` 是私密 key，只能站长自己保存
+- `CLOUDFLARE_API_TOKEN` 只用于部署，不能提交到 GitHub
+
 ### 10.4 本地能用，线上不能用
 
 这通常是两个原因之一：
@@ -591,7 +621,7 @@ PUBLIC_TURNSTILE_SITE_KEY
 这个项目的数据库名固定为：
 
 ```text
-yuulog-comments-db
+yuucomments-db
 ```
 
 部署脚本会优先查找现有数据库，只有不存在时才创建新的。  
@@ -616,7 +646,7 @@ docs/AUTO_BUILD_TRIGGER.md
 
 - [ ] 已登录 Cloudflare
 - [ ] 已准备 `TURNSTILE_SECRET_KEY`
-- [ ] 已把真实前端域名加入 `src/utils/cors.ts`
+- [ ] 已把真实前端域名加入 `worker/src/utils/cors.ts`
 - [ ] 已运行 `pnpm deploy:backend`
 - [ ] 已保存 `ADMIN_TOKEN`
 - [ ] Worker 地址可访问
@@ -650,7 +680,7 @@ pnpm build
 ### 12.2 只改评论后端代码
 
 ```powershell
-cd path\to\yuulog-comments
+cd path\to\YuuComments
 pnpm deploy:backend
 ```
 
@@ -675,7 +705,7 @@ pnpm deploy:backend
 
 1. 前端 `src/config.ts` 的 `siteURL`
 2. 前端环境变量里的公开地址
-3. 后端 `src/utils/cors.ts` 的白名单
+3. 后端 `worker/src/utils/cors.ts` 的白名单
 
 如果你换了后端域名，则至少改：
 
@@ -709,13 +739,13 @@ pnpm deploy:backend
 
 - `README.md`
 - `package.json`
-- `wrangler.toml`
-- `scripts/deploy-backend.ps1`
-- `src/utils/cors.ts`
-- `src/routes/createComment.ts`
-- `src/routes/adminComments.ts`
-- `migrations/0001_init.sql`
-- `migrations/0002_add_comment_email.sql`
+- `worker/wrangler.toml.example`
+- `worker/deploy-backend.ps1`
+- `worker/src/utils/cors.ts`
+- `worker/src/routes/createComment.ts`
+- `worker/src/routes/adminComments.ts`
+- `worker/migrations/0001_init.sql`
+- `worker/migrations/0002_add_comment_email.sql`
 
 ### 前端仓库
 

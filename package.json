@@ -1,16 +1,17 @@
 {
-  "name": "yuulog-comments",
+  "name": "yuucomments",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:backend": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-backend.ps1",
+    "dev": "wrangler dev --config worker/wrangler.toml",
+    "deploy": "wrangler deploy --config worker/wrangler.toml",
+    "deploy:backend": "powershell -ExecutionPolicy Bypass -File ./worker/deploy-backend.ps1",
+    "setup": "node ./worker/setup.js",
     "typecheck": "tsc --noEmit",
-    "db:migrate:local": "wrangler d1 migrations apply yuulog-comments-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply yuulog-comments-db --remote"
+    "db:migrate:local": "wrangler d1 migrations apply yuucomments-db --local --config worker/wrangler.toml",
+    "db:migrate:remote": "wrangler d1 migrations apply yuucomments-db --remote --config worker/wrangler.toml"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260515.0",

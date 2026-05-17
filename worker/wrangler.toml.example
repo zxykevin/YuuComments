@@ -1,9 +1,9 @@
-name = "yuulog-comments"
+name = "yuucomments"
 main = "src/index.ts"
 compatibility_date = "2026-05-16"
 [[d1_databases]]
 binding = "DB"
-database_name = "yuulog-comments-db"
+database_name = "yuucomments-db"
 database_id = "replace-with-your-d1-database-id"
 migrations_dir = "migrations"
 
