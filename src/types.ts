@@ -1,6 +1,7 @@
 export interface Env {
   DB: D1Database;
   TURNSTILE_SECRET_KEY?: string;
+  ADMIN_TOKEN?: string;
 }
 
 export interface CommentRow {
@@ -8,6 +9,7 @@ export interface CommentRow {
   page_path: string;
   parent_id: string | null;
   nickname: string;
+  email: string | null;
   email_hash: string | null;
   website: string | null;
   content: string;
@@ -29,6 +31,10 @@ export interface CommentResponse {
   updatedAt: string;
 }
 
+export interface AdminCommentResponse extends CommentResponse {
+  email: string | null;
+}
+
 export interface CreateCommentInput {
   pagePath: string;
   parentId: string | null;
@@ -38,3 +44,5 @@ export interface CreateCommentInput {
   content: string;
   turnstileToken: string;
 }
+
+export type CommentStatus = "pending" | "approved" | "spam" | "deleted";

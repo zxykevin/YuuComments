@@ -1,4 +1,8 @@
 import type { Env } from "./types";
+import {
+  getAdminComments,
+  updateAdminCommentStatus,
+} from "./routes/adminComments";
 import { createComment } from "./routes/createComment";
 import { getComments } from "./routes/getComments";
 import { getCorsHeaders, handleOptions } from "./utils/cors";
@@ -40,6 +44,45 @@ export default {
           {
             ok: false,
             message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      if (url.pathname === "/api/admin/comments") {
+        if (request.method === "GET") {
+          const response = await getAdminComments(request, env);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "鏂规硶涓嶅厑璁?",
+          },
+          405,
+        );
+      }
+
+      const adminStatusMatch = url.pathname.match(
+        /^\/api\/admin\/comments\/([^/]+)\/status$/,
+      );
+      if (adminStatusMatch) {
+        if (request.method === "PATCH") {
+          const response = await updateAdminCommentStatus(
+            request,
+            env,
+            adminStatusMatch[1],
+          );
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "鏂规硶涓嶅厑璁?",
           },
           405,
         );

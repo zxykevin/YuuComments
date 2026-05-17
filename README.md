@@ -1,12 +1,14 @@
 # yuulog-comments
 
-一个基于 Cloudflare Workers、TypeScript 和 D1 的轻量评论后端，当前实现最小可用版本：
+一个基于 Cloudflare Workers、TypeScript 和 D1 的轻量评论后端，当前提供：
 
 - `GET /api/comments?path=/xxx`
 - `POST /api/comments`
+- `GET /api/admin/comments?status=approved`
+- `PATCH /api/admin/comments/:id/status`
 - D1 持久化
-- Turnstile 服务端校验预留
-- 仅返回 JSON
+- Turnstile 服务端校验
+- 基于 `ADMIN_TOKEN` 的简易管理接口
 
 ## 安装依赖
 
@@ -36,13 +38,16 @@ pnpm db:migrate:local
 pnpm db:migrate:remote
 ```
 
-## 配置 Turnstile secret
+## 配置 secrets
 
 ```bash
 pnpm exec wrangler secret put TURNSTILE_SECRET_KEY
+pnpm exec wrangler secret put ADMIN_TOKEN
 ```
 
-如果没有设置 `TURNSTILE_SECRET_KEY`，代码会在开发阶段跳过 Turnstile 校验，方便本地联调。正式环境必须配置该 secret。
+如果没有设置 `TURNSTILE_SECRET_KEY`，代码会在开发环境跳过 Turnstile 校验，方便本地联调。正式环境必须配置该 secret。
+
+`ADMIN_TOKEN` 用于访问管理接口。请把它作为 Worker secret 保存，不要写入仓库。
 
 ## 本地开发
 
@@ -75,6 +80,8 @@ GET /api/comments?path=/posts/example/
 }
 ```
 
+前台接口只返回 `status = "approved"` 的评论。
+
 ### 提交评论
 
 ```http
@@ -99,14 +106,42 @@ Content-Type: application/json
 ```json
 {
   "ok": true,
-  "status": "pending",
+  "status": "approved",
   "message": "评论已提交，等待审核"
 }
 ```
 
+默认提交状态当前为 `approved`，可在代码中切换为 `pending`。
+
+### 管理评论
+
+```http
+GET /api/admin/comments?status=approved
+Authorization: Bearer <ADMIN_TOKEN>
+```
+
+```http
+PATCH /api/admin/comments/:id/status
+Authorization: Bearer <ADMIN_TOKEN>
+Content-Type: application/json
+```
+
+```json
+{
+  "status": "approved"
+}
+```
+
+支持的状态：
+
+- `pending`
+- `approved`
+- `spam`
+- `deleted`
+
 ## Astro 前端接入示例
 
-假设 Worker 已部署到 `https://comments.example.com`，在 Astro 页面中可以这样调用：
+假设 Worker 已部署到 `https://comments.example.com`：
 
 ```ts
 const apiBase = "https://comments.example.com";
@@ -140,7 +175,9 @@ await fetch(`${apiBase}/api/comments`, {
 
 ## 设计说明
 
-- `parent_id` 已预留回复评论能力
-- `status` 已预留审核流
-- `email_hash` 和 `ip_hash` 只保存 SHA-256，不保存原文
-- 当前索引已覆盖按页面、状态、时间读取评论，以及后续按父评论查询
+- `parent_id` 用于回复评论
+- `status` 支持审核流
+- 前台接口只返回 `email_hash`
+- 管理接口可读取原始 `email`
+- `ip_hash` 只保存 SHA-256，不保存原文
+- 当前索引覆盖按页面、状态、时间读取评论，以及按父评论查询

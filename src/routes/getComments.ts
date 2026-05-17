@@ -26,6 +26,7 @@ export async function getComments(request: Request, env: Env): Promise<Response>
       page_path,
       parent_id,
       nickname,
+      email,
       email_hash,
       website,
       content,

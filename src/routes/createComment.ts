@@ -1,7 +1,9 @@
-import type { Env } from "../types";
+import type { CommentStatus, Env } from "../types";
 import { sha256Hex } from "../utils/hash";
 import { verifyTurnstileToken } from "../utils/turnstile";
 import { parseCreateCommentInput } from "../utils/validate";
+
+const DEFAULT_COMMENT_STATUS: CommentStatus = "approved";
 
 export async function createComment(request: Request, env: Env): Promise<Response> {
   let payload: unknown;
@@ -34,12 +36,12 @@ export async function createComment(request: Request, env: Env): Promise<Respons
 
   if (input.parentId) {
     const parent = await env.DB.prepare(
-      "SELECT id FROM comments WHERE id = ? LIMIT 1",
+      "SELECT id, page_path FROM comments WHERE id = ? LIMIT 1",
     )
       .bind(input.parentId)
-      .first<{ id: string }>();
+      .first<{ id: string; page_path: string }>();
 
-    if (!parent) {
+    if (!parent || parent.page_path !== input.pagePath) {
       return Response.json(
         {
           ok: false,
@@ -60,23 +62,25 @@ export async function createComment(request: Request, env: Env): Promise<Respons
       page_path,
       parent_id,
       nickname,
+      email,
       email_hash,
       website,
       content,
       status,
       user_agent,
       ip_hash
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
       input.pagePath,
       input.parentId,
       input.nickname,
+      input.email,
       emailHash,
       input.website,
       input.content,
-      "pending",
+      DEFAULT_COMMENT_STATUS,
       request.headers.get("User-Agent"),
       ipHash,
     )
@@ -84,7 +88,7 @@ export async function createComment(request: Request, env: Env): Promise<Respons
 
   return Response.json({
     ok: true,
-    status: "pending",
+    status: DEFAULT_COMMENT_STATUS,
     message: "评论已提交，等待审核",
   });
 }
