@@ -61,7 +61,14 @@ function Get-RequiredSecrets {
 }
 
 function Get-ConfiguredSecrets {
-  $output = @(pnpm exec wrangler secret list --format json --config $wranglerConfigArg 2>&1)
+  $previousErrorActionPreference = $ErrorActionPreference
+
+  try {
+    $ErrorActionPreference = "Continue"
+    $output = @(pnpm exec wrangler secret list --format json --config $wranglerConfigArg 2>&1)
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
 
   if ($LASTEXITCODE -ne 0) {
     if (($output -join "`n") -match 'Worker ".*" not found') {
