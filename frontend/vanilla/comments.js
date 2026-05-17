@@ -1,5 +1,5 @@
 (() => {
-  const ROOT_SELECTOR = "#yuulog-comments";
+  const ROOT_SELECTOR = "#yuucomments, #yuulog-comments";
 
   function resolveConfig(root) {
     const globalConfig = window.YuuCommentsConfig ?? {};

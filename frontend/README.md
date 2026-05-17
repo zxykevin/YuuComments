@@ -21,3 +21,5 @@
 3. 都没有时，评论区显示明确的配置缺失提示
 
 `yuucomments.config.js` 只允许包含公开的 Worker API 地址和 Turnstile Site Key。
+
+新接入推荐使用 `id="yuucomments"`；旧版 `id="yuulog-comments"` 仍然保留兼容。

@@ -17,7 +17,6 @@ $frontendDistRoot = Join-Path $repoRoot "dist\frontend"
 Push-Location $repoRoot
 
 try {
-
 function Invoke-CheckedCommand {
   param(
     [Parameter(Mandatory = $true)]
@@ -515,7 +514,7 @@ if ($localSecrets.ContainsKey("ADMIN_TOKEN")) {
 }
 Write-Host ""
 Write-Host "Minimal frontend embed:"
-Write-Host '<div id="yuulog-comments" data-page-key="/posts/example/"></div>'
+Write-Host '<div id="yuucomments" data-page-key="/posts/example/"></div>'
 Write-Host '<link rel="stylesheet" href="/comments/comments.css" />'
 Write-Host '<script src="/comments/yuucomments.config.js"></script>'
 Write-Host '<script src="/comments/comments.js" defer></script>'
