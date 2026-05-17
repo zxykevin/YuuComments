@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:backend": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-backend.ps1",
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply yuulog-comments-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply yuulog-comments-db --remote"

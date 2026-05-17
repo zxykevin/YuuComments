@@ -10,57 +10,71 @@
 - Turnstile 服务端校验
 - 基于 `ADMIN_TOKEN` 的简易管理接口
 
-## 安装依赖
+## 首次部署只需三步
+
+### 1. 登录 Cloudflare
 
 ```bash
-pnpm install
+pnpm exec wrangler login
 ```
 
-## 创建 D1 数据库
+### 2. 准备 Turnstile secret
+
+任选一种方式：
 
 ```bash
-pnpm exec wrangler d1 create yuulog-comments-db
+$env:TURNSTILE_SECRET_KEY = "your-turnstile-secret"
 ```
 
-创建完成后，把命令返回的 `database_id` 写入 `wrangler.toml` 的 `database_id`。
+或把真实值写入本地 `secrets.production.json`：
 
-## 执行 migration
+```json
+{
+  "TURNSTILE_SECRET_KEY": "your-turnstile-secret"
+}
+```
 
-本地数据库：
+也可以什么都不提前准备，部署脚本会在终端里提示输入。
+
+### 3. 一键部署
 
 ```bash
-pnpm db:migrate:local
+pnpm deploy:backend
 ```
 
-远程数据库：
+脚本会自动：
 
-```bash
-pnpm db:migrate:remote
-```
+- 安装依赖
+- 检查 Cloudflare 登录状态
+- 创建远端 D1（若不存在）
+- 回写 `wrangler.toml` 中的 `database_id`
+- 自动生成 `ADMIN_TOKEN`
+- 读取或提示输入 `TURNSTILE_SECRET_KEY`
+- 上传缺失的 Worker secrets
+- 执行远程 migration
+- 部署 Worker
 
-## 配置 secrets
-
-```bash
-pnpm exec wrangler secret put TURNSTILE_SECRET_KEY
-pnpm exec wrangler secret put ADMIN_TOKEN
-```
-
-如果没有设置 `TURNSTILE_SECRET_KEY`，代码会在开发环境跳过 Turnstile 校验，方便本地联调。正式环境必须配置该 secret。
-
-`ADMIN_TOKEN` 用于访问管理接口。请把它作为 Worker secret 保存，不要写入仓库。
+首次生成的 `ADMIN_TOKEN` 会保存在本地 `secrets.production.json`，该文件已加入 `.gitignore`，不要提交到仓库。
 
 ## 本地开发
 
 ```bash
+pnpm install
+pnpm db:migrate:local
 pnpm dev
 ```
 
 默认开发地址通常是 `http://localhost:8787`。
 
-## 部署
+如果没有设置 `TURNSTILE_SECRET_KEY`，代码会在开发环境跳过 Turnstile 校验，方便本地联调。正式环境必须配置该 secret。
+
+## 常用命令
 
 ```bash
+pnpm typecheck
+pnpm db:migrate:remote
 pnpm deploy
+pnpm deploy:backend
 ```
 
 ## API
