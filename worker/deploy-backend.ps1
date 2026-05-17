@@ -282,15 +282,27 @@ function Get-TurnstileHostnames {
     }
   }
 
+  $hostnames = @("127.0.0.1", "localhost")
+
   if ($rawHostnames -is [System.Array]) {
-    return @($rawHostnames | ForEach-Object { "$_".Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $hostnames += @(
+      $rawHostnames |
+        ForEach-Object { "$_".Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+  } else {
+    if ([string]::IsNullOrWhiteSpace($rawHostnames)) {
+      $rawHostnames = Read-Host "Enter your site hostnames without https:// (comma-separated, for example example.com,www.example.com)"
+    }
+
+    $hostnames += @(
+      "$rawHostnames".Split(",") |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
   }
 
-  if ([string]::IsNullOrWhiteSpace($rawHostnames)) {
-    $rawHostnames = Read-Host "Enter Turnstile hostnames (comma-separated, for example example.com,www.example.com)"
-  }
-
-  return @("$rawHostnames".Split(",") | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  return @($hostnames | Select-Object -Unique)
 }
 
 function New-TurnstileWidget {
