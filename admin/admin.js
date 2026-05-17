@@ -1,5 +1,11 @@
 (() => {
   const statuses = ["pending", "approved", "spam", "deleted"];
+  const statusLabels = {
+    pending: "待审核",
+    approved: "已通过",
+    spam: "垃圾",
+    deleted: "已删除",
+  };
   const storageKey = "yuucomments-admin-token";
   const apiBase = document.body.dataset.apiBase || "";
   const tokenForm = document.querySelector("[data-token-form]");
@@ -34,7 +40,7 @@
       { all: 0, pending: 0, approved: 0, spam: 0, deleted: 0 },
     );
     filters.replaceChildren();
-    [{ label: "all", value: "" }, ...statuses.map((value) => ({ label: value, value }))].forEach(
+    [{ label: "全部", value: "" }, ...statuses.map((value) => ({ label: statusLabels[value], value }))].forEach(
       ({ label, value }) => {
         const button = document.createElement("button");
         button.type = "button";
@@ -68,11 +74,11 @@
     const visible = visibleComments();
     commentsRoot.replaceChildren();
     if (!getToken()) {
-      commentsRoot.innerHTML = `<div class="ya-empty">Enter ADMIN_TOKEN first.</div>`;
+      commentsRoot.innerHTML = `<div class="ya-empty">请先输入 ADMIN_TOKEN。</div>`;
       return;
     }
     if (!visible.length) {
-      commentsRoot.innerHTML = `<div class="ya-empty">No matching comments.</div>`;
+      commentsRoot.innerHTML = `<div class="ya-empty">没有匹配的评论。</div>`;
       return;
     }
 
@@ -85,12 +91,12 @@
             <h2>${escapeHtml(comment.nickname)}</h2>
             <p>${escapeHtml(comment.pagePath)}</p>
           </div>
-          <span class="status status-${comment.status}">${comment.status}</span>
+          <span class="status status-${comment.status}">${statusLabels[comment.status]}</span>
         </header>
         <p class="ya-content">${escapeHtml(comment.content)}</p>
         <dl>
-          <div><dt>Created</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
-          <div><dt>Email</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
+          <div><dt>创建时间</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
+          <div><dt>邮箱</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
         </dl>
         <footer></footer>
       `;
@@ -98,7 +104,7 @@
       statuses.forEach((status) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = status;
+        button.textContent = statusLabels[status];
         button.disabled = comment.status === status;
         button.addEventListener("click", () => updateStatus(comment.id, status));
         footer.append(button);
@@ -115,7 +121,7 @@
       renderComments();
       return;
     }
-    showMessage("Loading...");
+    showMessage("正在加载...");
     try {
       const response = await fetch(`${apiBase}/api/admin/comments`, {
         headers: {
@@ -125,14 +131,14 @@
       });
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.comments)) {
-        throw new Error(data.message || "Failed to load comments.");
+        throw new Error(data.message || "评论加载失败。");
       }
       comments = data.comments;
       showMessage("");
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Failed to load comments.");
+      showMessage(error instanceof Error ? error.message : "评论加载失败。");
     }
   }
 
@@ -153,7 +159,7 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Failed to update status.");
+        throw new Error(data.message || "状态更新失败。");
       }
       comments = comments.map((comment) =>
         comment.id === id ? { ...comment, status } : comment,
@@ -161,7 +167,7 @@
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Failed to update status.");
+      showMessage(error instanceof Error ? error.message : "状态更新失败。");
     }
   }
 

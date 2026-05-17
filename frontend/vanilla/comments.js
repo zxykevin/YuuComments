@@ -39,39 +39,39 @@
   function createMarkup(root) {
     root.classList.add("yc-root");
     root.innerHTML = `
-      <section class="yc-section" aria-label="Comments">
+      <section class="yc-section" aria-label="评论">
         <div class="yc-header">
-          <h2>Comments</h2>
+          <h2>评论</h2>
           <span data-yc-count aria-live="polite"></span>
         </div>
         <div class="yc-list" data-yc-list aria-live="polite"></div>
         <form class="yc-form" data-yc-form novalidate>
           <div class="yc-form-heading">
-            <h3 data-yc-form-title>Leave a comment</h3>
-            <button type="button" data-yc-cancel-reply hidden>Cancel reply</button>
+            <h3 data-yc-form-title>发表评论</h3>
+            <button type="button" data-yc-cancel-reply hidden>取消回复</button>
           </div>
           <div class="yc-grid">
             <label>
-              <span>Name</span>
+              <span>昵称</span>
               <input name="nickname" type="text" required maxlength="30" />
             </label>
             <label>
-              <span>Email</span>
+              <span>邮箱</span>
               <input name="email" type="email" maxlength="160" />
             </label>
             <label>
-              <span>Website</span>
+              <span>网站</span>
               <input name="website" type="url" placeholder="https://example.com" maxlength="240" />
             </label>
           </div>
           <label>
-            <span>Comment</span>
+            <span>评论内容</span>
             <textarea name="content" required rows="5" maxlength="1000"></textarea>
           </label>
           <div class="yc-turnstile" data-yc-turnstile hidden></div>
           <div class="yc-footer">
             <p class="yc-feedback" data-yc-feedback aria-live="polite"></p>
-            <button type="submit" data-yc-submit>Submit</button>
+            <button type="submit" data-yc-submit>提交</button>
           </div>
         </form>
       </section>
@@ -82,7 +82,7 @@
     root.classList.add("yc-root");
     root.innerHTML = `
       <div class="yc-state">
-        <p>YuuComments configuration missing: apiBase or turnstileSiteKey</p>
+        <p>YuuComments 配置缺失：apiBase 或 turnstileSiteKey</p>
       </div>
     `;
   }
@@ -153,7 +153,7 @@
     list.replaceChildren();
     if (count) count.textContent = comments.length ? `${comments.length}` : "";
     if (!comments.length) {
-      renderState(list, "No comments yet.");
+      renderState(list, "还没有评论。");
       return;
     }
 
@@ -206,7 +206,7 @@
     const author = website ? document.createElement("a") : document.createElement("span");
     const parent = comment.parentId ? commentsById.get(comment.parentId) : null;
     author.className = "yc-author";
-    author.textContent = parent ? `Reply to @${parent.nickname}` : comment.nickname;
+    author.textContent = parent ? `回复 @${parent.nickname}` : comment.nickname;
     if (website && author instanceof HTMLAnchorElement) {
       author.href = website;
       author.target = "_blank";
@@ -225,7 +225,7 @@
     actions.className = "yc-actions";
     const replyButton = document.createElement("button");
     replyButton.type = "button";
-    replyButton.textContent = "Reply";
+    replyButton.textContent = "回复";
     replyButton.addEventListener("click", () => {
       setReplyTarget(root, { id: comment.id, nickname: comment.nickname });
     });
@@ -242,7 +242,7 @@
     if (!list) return;
     const pageKey = root.dataset.pageKey || window.location.pathname;
     const { apiBase } = resolveConfig(root);
-    renderState(list, "Loading comments...");
+    renderState(list, "正在加载评论...");
 
     try {
       const response = await fetch(
@@ -251,11 +251,11 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.comments)) {
-        throw new Error("Failed to load comments");
+        throw new Error("评论加载失败");
       }
       renderComments(root, data.comments);
     } catch {
-      renderState(list, "Failed to load comments.");
+      renderState(list, "评论加载失败。");
     }
   }
 
@@ -271,7 +271,7 @@
     if (!turnstileSlot || !feedback || !submitButton) return;
     const { siteKey } = resolveConfig(root);
     if (!siteKey) {
-      feedback.textContent = "Turnstile site key is missing.";
+      feedback.textContent = "缺少 Turnstile site key。";
       submitButton.disabled = true;
       return;
     }
@@ -283,7 +283,7 @@
         sitekey: siteKey,
         callback: (token) => {
           root.__yuuCommentsTurnstileToken = token;
-          if (feedback.textContent === "Please complete verification first.") {
+          if (feedback.textContent === "请先完成人机验证。") {
             feedback.textContent = "";
           }
         },
@@ -292,11 +292,11 @@
         },
         "error-callback": () => {
           root.__yuuCommentsTurnstileToken = "";
-          feedback.textContent = "Verification failed to load.";
+          feedback.textContent = "验证组件加载失败。";
         },
       });
     } catch {
-      feedback.textContent = "Verification failed to load.";
+      feedback.textContent = "验证组件加载失败。";
       submitButton.disabled = true;
     }
   }
@@ -316,20 +316,20 @@
       const content = String(formData.get("content") ?? "").trim();
 
       if (!nickname || !content) {
-        feedback.textContent = "Name and comment are required.";
+        feedback.textContent = "昵称和评论内容不能为空。";
         return;
       }
       if (!isHttpWebsite(website)) {
-        feedback.textContent = "Website must start with http:// or https://.";
+        feedback.textContent = "网站必须以 http:// 或 https:// 开头。";
         return;
       }
       if (!root.__yuuCommentsTurnstileToken) {
-        feedback.textContent = "Please complete verification first.";
+        feedback.textContent = "请先完成人机验证。";
         return;
       }
 
       submitButton.disabled = true;
-      submitButton.textContent = "Submitting...";
+      submitButton.textContent = "提交中...";
       try {
         const { apiBase } = resolveConfig(root);
         const response = await fetch(`${apiBase}/api/comments`, {
@@ -350,19 +350,19 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) {
-          feedback.textContent = data.message || "Failed to submit comment.";
+          feedback.textContent = data.message || "评论提交失败。";
           return;
         }
-        feedback.textContent = "Comment submitted.";
+        feedback.textContent = "评论已提交。";
         form.elements.content.value = "";
         setReplyTarget(root, null);
         await loadComments(root);
       } catch {
-        feedback.textContent = "Failed to submit comment.";
+        feedback.textContent = "评论提交失败。";
       } finally {
         resetTurnstile(root);
         submitButton.disabled = false;
-        submitButton.textContent = "Submit";
+        submitButton.textContent = "提交";
       }
     });
   }
@@ -372,8 +372,8 @@
     root.__yuuCommentsReplyTarget = target;
     if (formTitle) {
       formTitle.textContent = target
-        ? `Reply to @${target.nickname}`
-        : "Leave a comment";
+        ? `回复 @${target.nickname}`
+        : "发表评论";
     }
     if (cancelReplyButton) cancelReplyButton.hidden = !target;
     if (target) form?.scrollIntoView({ behavior: "smooth", block: "start" });

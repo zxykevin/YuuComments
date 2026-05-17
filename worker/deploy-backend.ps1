@@ -14,6 +14,9 @@ $wranglerConfigArg = "worker/wrangler.toml"
 $secretsPath = Join-Path $repoRoot $SecretsFile
 $frontendSourceRoot = Join-Path $repoRoot "frontend\vanilla"
 $frontendDistRoot = Join-Path $repoRoot "dist\frontend"
+$adminSourceRoot = Join-Path $repoRoot "admin"
+$adminDistRoot = Join-Path $repoRoot "dist\admin"
+$corsSourcePath = Join-Path $workerRoot "src\utils\cors.ts"
 $workerExists = $true
 
 Push-Location $repoRoot
@@ -311,6 +314,63 @@ function Get-TurnstileHostnames {
   return @($hostnames | Select-Object -Unique)
 }
 
+function Get-ConfiguredSiteHostnames {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $hostnames = @(Get-TurnstileHostnames -Path $Path)
+  return @(
+    $hostnames |
+      Where-Object { $_ -ne "127.0.0.1" -and $_ -ne "localhost" } |
+      Select-Object -Unique
+  )
+}
+
+function Add-CorsOriginsForHostnames {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$Hostnames
+  )
+
+  $origins = @(
+    $Hostnames |
+      Where-Object {
+        -not [string]::IsNullOrWhiteSpace($_) -and
+        $_ -ne "127.0.0.1" -and
+        $_ -ne "localhost"
+      } |
+      ForEach-Object { "https://$($_.Trim())" } |
+      Select-Object -Unique
+  )
+
+  if ($origins.Count -eq 0) {
+    return
+  }
+
+  $content = Get-Content $corsSourcePath -Raw
+  $missingOrigins = @($origins | Where-Object { $content -notmatch [regex]::Escape('"' + $_ + '"') })
+
+  if ($missingOrigins.Count -eq 0) {
+    return
+  }
+
+  $lines = ($missingOrigins | ForEach-Object { '  "' + $_ + '",' }) -join "`r`n"
+  $updated = [regex]::Replace(
+    $content,
+    '(?m)^(\]\);)$',
+    ($lines + "`r`n" + '$1'),
+    1
+  )
+
+  if ($updated -eq $content) {
+    throw "Failed to update worker/src/utils/cors.ts."
+  }
+
+  Set-Utf8File -Path $corsSourcePath -Content $updated
+}
+
 function New-TurnstileWidget {
   param(
     [Parameter(Mandatory = $true)]
@@ -516,10 +576,35 @@ $localTurnstileSiteKey = Get-SecretValueFromFile `
 $localTurnstileSecretKey = Get-SecretValueFromFile `
   -Name "TURNSTILE_SECRET_KEY" `
   -Path $secretsPath
+$localTurnstileHostnames = Get-SecretValueFromFile `
+  -Name "TURNSTILE_HOSTNAMES" `
+  -Path $secretsPath
 $createdTurnstileWidget = $false
+
+if (-not [string]::IsNullOrWhiteSpace("$localTurnstileHostnames")) {
+  Add-CorsOriginsForHostnames -Hostnames @($localTurnstileHostnames)
+}
 
 if ([string]::IsNullOrWhiteSpace($publicTurnstileSiteKey)) {
   $publicTurnstileSiteKey = $localTurnstileSiteKey
+}
+
+function New-AdminBundle {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkerUrl
+  )
+
+  if (-not (Test-Path $adminDistRoot)) {
+    New-Item -ItemType Directory -Path $adminDistRoot | Out-Null
+  }
+
+  Copy-Item (Join-Path $adminSourceRoot "admin.js") (Join-Path $adminDistRoot "admin.js")
+  Copy-Item (Join-Path $adminSourceRoot "admin.css") (Join-Path $adminDistRoot "admin.css")
+
+  $adminHtml = Get-Content (Join-Path $adminSourceRoot "index.html") -Raw -Encoding UTF8
+  $adminHtml = $adminHtml.Replace('data-api-base=""', ('data-api-base="' + $WorkerUrl + '"'))
+  Set-Utf8File -Path (Join-Path $adminDistRoot "index.html") -Content $adminHtml
 }
 
 $turnstileWidget = $null
@@ -536,6 +621,12 @@ if (
   }
 
   $turnstileHostnames = @(Get-TurnstileHostnames -Path $secretsPath)
+  $localSecrets["TURNSTILE_HOSTNAMES"] = @(
+    $turnstileHostnames |
+      Where-Object { $_ -ne "127.0.0.1" -and $_ -ne "localhost" }
+  )
+  $localTurnstileHostnames = $localSecrets["TURNSTILE_HOSTNAMES"]
+  Add-CorsOriginsForHostnames -Hostnames $turnstileHostnames
   $turnstileWidget = New-TurnstileWidget `
     -AccountId $accountId `
     -ApiToken $apiToken `
@@ -656,6 +747,12 @@ if ($missingSecrets.Count -gt 0) {
   }
 }
 
+if ([string]::IsNullOrWhiteSpace("$localTurnstileHostnames")) {
+  $siteHostnames = @(Get-ConfiguredSiteHostnames -Path $secretsPath)
+  $localSecrets["TURNSTILE_HOSTNAMES"] = $siteHostnames
+  Add-CorsOriginsForHostnames -Hostnames $siteHostnames
+}
+
 if (
   $createdTurnstileWidget -and
   -not [string]::IsNullOrWhiteSpace($turnstileWidget.secret) -and
@@ -696,6 +793,7 @@ if (-not $workerUrl) {
 }
 
 New-FrontendBundle -WorkerUrl $workerUrl -TurnstileSiteKey $publicTurnstileSiteKey
+New-AdminBundle -WorkerUrl $workerUrl
 
 Write-Host ""
 Write-Host "Backend deployment completed."
@@ -715,6 +813,7 @@ Write-Host '<script src="/comments/yuucomments.config.js"></script>'
 Write-Host '<script src="/comments/comments.js" defer></script>'
 Write-Host ""
 Write-Host "Publish the three files in dist/frontend/ to your site's /comments/ directory."
+Write-Host "Publish the files in dist/admin/ to your site's /admin/ directory."
 Write-Host ""
 Write-Host "Astro / Mizuki environment variables:"
 Write-Host "PUBLIC_COMMENTS_API_BASE_URL=$workerUrl"
