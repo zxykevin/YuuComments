@@ -1,0 +1,168 @@
+:root {
+  color-scheme: light;
+  --ya-border: #d8dee8;
+  --ya-text: #111827;
+  --ya-muted: #6b7280;
+  --ya-surface: #ffffff;
+  --ya-soft: #f8fafc;
+  --ya-accent: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f3f4f6;
+  color: var(--ya-text);
+  font-family: Arial, sans-serif;
+}
+
+.ya-shell {
+  width: min(calc(100% - 2rem), 72rem);
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+header p {
+  margin: 0 0 0.25rem;
+  color: var(--ya-muted);
+}
+
+header h1 {
+  margin-top: 0;
+}
+
+.ya-toolbar,
+.ya-card,
+.ya-empty {
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  background: var(--ya-surface);
+  padding: 1rem;
+}
+
+.ya-toolbar {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ya-toolbar form,
+.ya-toolbar label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ya-toolbar input {
+  width: 100%;
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+}
+
+button {
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  background: var(--ya-soft);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.ya-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ya-filters .is-active {
+  border-color: var(--ya-accent);
+  background: var(--ya-accent);
+  color: #fff;
+}
+
+.ya-feedback {
+  min-height: 1.25rem;
+  color: var(--ya-muted);
+}
+
+.ya-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.ya-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.ya-card header,
+.ya-card footer,
+.ya-card dl {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ya-card h2,
+.ya-card p,
+.ya-card dl {
+  margin: 0;
+}
+
+.ya-card dl {
+  flex-wrap: wrap;
+}
+
+.ya-card dt {
+  color: var(--ya-muted);
+  font-size: 0.8rem;
+}
+
+.ya-card dd {
+  margin: 0.2rem 0 0;
+}
+
+.ya-content {
+  border-radius: 8px;
+  background: var(--ya-soft);
+  padding: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.status-approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-pending {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.status-spam {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-deleted {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+@media (min-width: 760px) {
+  .ya-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ya-filters {
+    grid-column: 1 / -1;
+  }
+}

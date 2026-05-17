@@ -6,4 +6,5 @@ dist/
 .env.*
 !.env.example
 secrets.production.json
+worker/wrangler.toml
 *.log

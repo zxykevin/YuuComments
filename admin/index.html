@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YuuComments Admin</title>
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body data-api-base="">
+    <main class="ya-shell">
+      <header>
+        <p>YuuComments</p>
+        <h1>Comment moderation</h1>
+      </header>
+
+      <section class="ya-toolbar">
+        <form data-token-form>
+          <label>
+            <span>ADMIN_TOKEN</span>
+            <input type="password" name="token" autocomplete="off" />
+          </label>
+          <button type="submit">Save</button>
+        </form>
+
+        <label>
+          <span>Search</span>
+          <input type="search" data-search placeholder="Author, content, or page path" />
+        </label>
+
+        <div class="ya-filters" data-filters></div>
+      </section>
+
+      <p class="ya-feedback" data-feedback></p>
+      <section class="ya-grid" data-comments></section>
+    </main>
+    <script src="./admin.js" defer></script>
+  </body>
+</html>
