@@ -33,7 +33,7 @@ function unauthorizedResponse(): Response {
   return Response.json(
     {
       ok: false,
-      message: "Unauthorized",
+      message: "未授权",
     },
     { status: 401 },
   );
@@ -52,7 +52,7 @@ export async function getAdminComments(
     return Response.json(
       {
         ok: false,
-        message: "Invalid status",
+        message: "无效状态",
       },
       { status: 400 },
     );
@@ -108,7 +108,7 @@ export async function updateAdminCommentStatus(
     return Response.json(
       {
         ok: false,
-        message: "Invalid status",
+        message: "无效状态",
       },
       { status: 400 },
     );
@@ -126,7 +126,7 @@ export async function updateAdminCommentStatus(
     return Response.json(
       {
         ok: false,
-        message: "Comment not found",
+        message: "评论不存在",
       },
       { status: 404 },
     );
