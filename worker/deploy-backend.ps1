@@ -181,7 +181,13 @@ function Get-SecretValueFromFile {
   }
 
   $content = Get-Content $Path -Raw | ConvertFrom-Json
-  return $content.$Name
+  $property = $content.PSObject.Properties[$Name]
+
+  if (-not $property) {
+    return $null
+  }
+
+  return $property.Value
 }
 
 function Get-LocalSecrets {
