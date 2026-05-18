@@ -122,8 +122,9 @@ pnpm deploy:backend
 - `dist/frontend/comments.js`
 - `dist/frontend/comments.css`
 - `dist/frontend/yuucomments.config.js`
+- `dist/astro/YuuComments.astro`
 
-把这三个文件发布到你自己网站的 `/comments/` 目录。
+把 `dist/frontend/` 里的三个文件发布到你自己网站的 `/comments/` 目录；Astro 项目再按需复制 `dist/astro/YuuComments.astro`。
 
 然后在需要显示评论区的页面中加入：
 
@@ -180,7 +181,7 @@ pnpm dev
 <script src="/comments/comments.js" defer></script>
 ```
 
-部署完成后，把 `dist/frontend/` 里的三个文件发布到站点 `/comments/` 目录即可。`yuucomments.config.js` 只包含公开的 Worker API 地址和 Turnstile Site Key。
+部署完成后，把 `dist/frontend/` 里的三个文件发布到站点 `/comments/` 目录即可。`yuucomments.config.js` 只包含公开的 Worker API 地址和 Turnstile Site Key。Astro 项目可以把自动生成的 `dist/astro/YuuComments.astro` 复制到自己的组件目录直接使用。
 
 旧版 `id="yuulog-comments"` 仍然兼容，但新接入请优先使用 `id="yuucomments"`。
 
@@ -188,14 +189,10 @@ Astro：
 
 ```astro
 ---
-import CommentBox from "../frontend/astro/CommentBox.astro";
+import YuuComments from "../components/YuuComments.astro";
 ---
 
-<CommentBox
-  pageKey={Astro.url.pathname}
-  apiBase="https://your-worker.example.workers.dev"
-  siteKey="your-turnstile-site-key"
-/>
+<YuuComments pageKey={Astro.url.pathname} />
 ```
 
 后台静态页在 `admin/`。部署前请在 `admin/index.html` 的 `<body data-api-base="">` 中填入 Worker 地址。
