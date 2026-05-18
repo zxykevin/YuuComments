@@ -322,6 +322,22 @@ secrets.production.json
 
 把 `dist/frontend/` 里的三个文件发布到自己网站的 `/comments/` 目录即可。
 
+如果你使用 Astro，部署脚本还会自动生成：
+
+```text
+dist/astro/YuuComments.astro
+```
+
+把它复制到你的 Astro 项目组件目录后即可直接使用：
+
+```astro
+---
+import YuuComments from "../components/YuuComments.astro";
+---
+
+<YuuComments pageKey={Astro.url.pathname} />
+```
+
 ## 5. 第二步：本地验证后端是否正常
 
 ### 5.1 检查类型

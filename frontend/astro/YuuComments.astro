@@ -1,0 +1,13 @@
+---
+interface Props {
+  pageKey?: string;
+}
+
+const { pageKey = Astro.url.pathname } = Astro.props;
+---
+
+<div id="yuucomments" data-page-key={pageKey}></div>
+
+<link rel="stylesheet" href="/comments/comments.css" />
+<script src="/comments/yuucomments.config.js"></script>
+<script src="/comments/comments.js" defer></script>

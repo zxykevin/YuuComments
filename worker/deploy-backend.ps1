@@ -14,6 +14,8 @@ $wranglerConfigArg = "worker/wrangler.toml"
 $secretsPath = Join-Path $repoRoot $SecretsFile
 $frontendSourceRoot = Join-Path $repoRoot "frontend\vanilla"
 $frontendDistRoot = Join-Path $repoRoot "dist\frontend"
+$astroSourceRoot = Join-Path $repoRoot "frontend\astro"
+$astroDistRoot = Join-Path $repoRoot "dist\astro"
 $adminSourceRoot = Join-Path $repoRoot "admin"
 $adminDistRoot = Join-Path $repoRoot "dist\admin"
 $corsSourcePath = Join-Path $workerRoot "src\utils\cors.ts"
@@ -523,6 +525,14 @@ window.YuuCommentsConfig = {
   }
 }
 
+function New-AstroBundle {
+  if (-not (Test-Path $astroDistRoot)) {
+    New-Item -ItemType Directory -Path $astroDistRoot | Out-Null
+  }
+
+  Copy-Item (Join-Path $astroSourceRoot "YuuComments.astro") (Join-Path $astroDistRoot "YuuComments.astro")
+}
+
 if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
   throw "pnpm is required but was not found in PATH."
 }
@@ -793,6 +803,7 @@ if (-not $workerUrl) {
 }
 
 New-FrontendBundle -WorkerUrl $workerUrl -TurnstileSiteKey $publicTurnstileSiteKey
+New-AstroBundle
 New-AdminBundle -WorkerUrl $workerUrl
 
 Write-Host ""
@@ -813,6 +824,7 @@ Write-Host '<script src="/comments/yuucomments.config.js"></script>'
 Write-Host '<script src="/comments/comments.js" defer></script>'
 Write-Host ""
 Write-Host "Publish the three files in dist/frontend/ to your site's /comments/ directory."
+Write-Host "Copy dist/astro/YuuComments.astro into any Astro project to get a minimal ready-to-use component."
 Write-Host "Publish the files in dist/admin/ to your site's /admin/ directory."
 Write-Host ""
 Write-Host "Astro / Mizuki environment variables:"
