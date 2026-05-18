@@ -6,11 +6,16 @@ import type {
 } from "../types";
 import { isAdminAuthorized } from "../utils/adminAuth";
 
-const allowedStatuses = new Set<CommentStatus>([
+const filterableStatuses = new Set<CommentStatus>([
   "pending",
   "approved",
   "spam",
   "deleted",
+]);
+const mutableStatuses = new Set<CommentStatus>([
+  "pending",
+  "approved",
+  "spam",
 ]);
 
 function toCommentResponse(row: CommentRow): AdminCommentResponse {
@@ -48,7 +53,7 @@ export async function getAdminComments(
   }
 
   const status = new URL(request.url).searchParams.get("status");
-  if (status && !allowedStatuses.has(status as CommentStatus)) {
+  if (status && !filterableStatuses.has(status as CommentStatus)) {
     return Response.json(
       {
         ok: false,
@@ -104,7 +109,7 @@ export async function updateAdminCommentStatus(
     typeof payload === "object" && payload !== null
       ? (payload as { status?: unknown }).status
       : undefined;
-  if (typeof status !== "string" || !allowedStatuses.has(status as CommentStatus)) {
+  if (typeof status !== "string" || !mutableStatuses.has(status as CommentStatus)) {
     return Response.json(
       {
         ok: false,
@@ -135,5 +140,40 @@ export async function updateAdminCommentStatus(
   return Response.json({
     ok: true,
     status,
+  });
+}
+
+export async function deleteAdminComment(
+  request: Request,
+  env: Env,
+  id: string,
+): Promise<Response> {
+  if (!isAdminAuthorized(request, env)) {
+    return unauthorizedResponse();
+  }
+
+  const comment = await env.DB.prepare(
+    `SELECT id
+    FROM comments
+    WHERE id = ?`,
+  )
+    .bind(id)
+    .first<{ id: string }>();
+
+  if (!comment) {
+    return Response.json(
+      {
+        ok: false,
+        message: "评论不存在",
+      },
+      { status: 404 },
+    );
+  }
+
+  await env.DB.prepare("DELETE FROM comments WHERE id = ?").bind(id).run();
+
+  return Response.json({
+    ok: true,
+    message: "评论已永久删除",
   });
 }
