@@ -70,6 +70,12 @@ button {
   cursor: pointer;
 }
 
+button.is-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .ya-filters {
   display: flex;
   flex-wrap: wrap;

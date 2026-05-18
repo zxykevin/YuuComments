@@ -113,6 +113,7 @@
         });
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
+      deleteButton.className = "is-danger";
       deleteButton.textContent = "删除";
       deleteButton.addEventListener("click", () => deleteComment(comment.id));
       footer.append(deleteButton);
@@ -200,6 +201,7 @@
         throw new Error(data.message || "评论删除失败。");
       }
       comments = comments.filter((comment) => comment.id !== id);
+      showMessage("评论已永久删除。");
       renderFilters();
       renderComments();
     } catch (error) {
