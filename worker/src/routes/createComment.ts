@@ -89,6 +89,6 @@ export async function createComment(request: Request, env: Env): Promise<Respons
   return Response.json({
     ok: true,
     status: DEFAULT_COMMENT_STATUS,
-    message: "评论已提交，等待审核",
+    message: "评论已发布",
   });
 }
