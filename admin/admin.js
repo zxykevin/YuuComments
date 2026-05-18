@@ -101,14 +101,21 @@
         <footer></footer>
       `;
       const footer = article.querySelector("footer");
-      statuses.forEach((status) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = statusLabels[status];
-        button.disabled = comment.status === status;
-        button.addEventListener("click", () => updateStatus(comment.id, status));
-        footer.append(button);
-      });
+      statuses
+        .filter((status) => status !== "deleted")
+        .forEach((status) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = statusLabels[status];
+          button.disabled = comment.status === status;
+          button.addEventListener("click", () => updateStatus(comment.id, status));
+          footer.append(button);
+        });
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.textContent = "删除";
+      deleteButton.addEventListener("click", () => deleteComment(comment.id));
+      footer.append(deleteButton);
       commentsRoot.append(article);
     });
   }
@@ -168,6 +175,35 @@
       renderComments();
     } catch (error) {
       showMessage(error instanceof Error ? error.message : "状态更新失败。");
+    }
+  }
+
+  async function deleteComment(id) {
+    if (!window.confirm("确定要永久删除这条评论吗？此操作不可恢复。")) {
+      return;
+    }
+
+    const token = getToken();
+    try {
+      const response = await fetch(
+        `${apiBase}/api/admin/comments/${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "评论删除失败。");
+      }
+      comments = comments.filter((comment) => comment.id !== id);
+      renderFilters();
+      renderComments();
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "评论删除失败。");
     }
   }
 

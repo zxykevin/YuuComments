@@ -1,5 +1,6 @@
 import type { Env } from "./types";
 import {
+  deleteAdminComment,
   getAdminComments,
   updateAdminCommentStatus,
 } from "./routes/adminComments";
@@ -83,6 +84,29 @@ export default {
           {
             ok: false,
             message: "鏂规硶涓嶅厑璁?",
+          },
+          405,
+        );
+      }
+
+      const adminCommentMatch = url.pathname.match(
+        /^\/api\/admin\/comments\/([^/]+)$/,
+      );
+      if (adminCommentMatch) {
+        if (request.method === "DELETE") {
+          const response = await deleteAdminComment(
+            request,
+            env,
+            adminCommentMatch[1],
+          );
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "方法不允许",
           },
           405,
         );
