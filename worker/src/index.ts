@@ -60,7 +60,7 @@ export default {
           request,
           {
             ok: false,
-            message: "鏂规硶涓嶅厑璁?",
+            message: "方法不允许",
           },
           405,
         );
@@ -83,7 +83,7 @@ export default {
           request,
           {
             ok: false,
-            message: "鏂规硶涓嶅厑璁?",
+            message: "方法不允许",
           },
           405,
         );
