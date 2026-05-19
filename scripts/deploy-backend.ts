@@ -428,6 +428,10 @@ function newAdminToken() {
 }
 
 async function readPlainSecret(prompt: string) {
+  if (process.stdin.isTTY) {
+    return await readMaskedSecret(prompt);
+  }
+
   const mutedOutput = new Writable({
     write(_chunk, _encoding, callback) {
       callback();
@@ -447,6 +451,58 @@ async function readPlainSecret(prompt: string) {
   } finally {
     rl.close();
   }
+}
+
+async function readMaskedSecret(prompt: string) {
+  return await new Promise<string>((resolve, reject) => {
+    const input = process.stdin;
+    const wasRaw = input.isRaw;
+    let value = "";
+
+    const cleanup = () => {
+      input.off("data", onData);
+      input.setRawMode(wasRaw);
+      input.pause();
+    };
+
+    const finish = () => {
+      cleanup();
+      process.stdout.write("\n");
+      resolve(value);
+    };
+
+    const onData = (chunk: Buffer | string) => {
+      for (const char of chunk.toString("utf8")) {
+        if (char === "\u0003") {
+          cleanup();
+          process.stdout.write("^C\n");
+          reject(new Error("Input cancelled."));
+          return;
+        }
+
+        if (char === "\r" || char === "\n") {
+          finish();
+          return;
+        }
+
+        if (char === "\u0008" || char === "\u007f") {
+          if (value.length > 0) {
+            value = value.slice(0, -1);
+            process.stdout.write("\b \b");
+          }
+          continue;
+        }
+
+        value += char;
+        process.stdout.write("*");
+      }
+    };
+
+    process.stdout.write(`${prompt}: `);
+    input.setRawMode(true);
+    input.resume();
+    input.on("data", onData);
+  });
 }
 
 async function readPlainInput(prompt: string) {
