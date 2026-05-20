@@ -575,6 +575,21 @@ function invokeDeployWorker(secretsFile: string | null) {
   return output.split(/\r?\n/).filter((line) => line.length > 0);
 }
 
+function getWorkerUrlFromDeployOutput(lines: string[]) {
+  const urls = lines
+    .join("\n")
+    .match(/https:\/\/[^\s)]+/g)
+    ?.map((url) => url.replace(/[.,;:]+$/, "")) ?? [];
+
+  return urls.find((url) => {
+    try {
+      return new URL(url).hostname.endsWith(".workers.dev");
+    } catch {
+      return false;
+    }
+  }) ?? null;
+}
+
 function newFrontendBundle(workerUrl: string, turnstileSiteKey: string) {
   ensureDirectory(frontendDistRoot);
   copyFileSync(path.join(frontendSourceRoot, "comments.js"), path.join(frontendDistRoot, "comments.js"));
@@ -857,9 +872,7 @@ async function main() {
     }
   }
 
-  const deployText = deployOutput.join("\n");
-  const workerUrlMatch = deployText.match(/https:\/\/[^\s]+/);
-  const workerUrl = workerUrlMatch ? workerUrlMatch[0].replace(/\.+$/, "") : null;
+  const workerUrl = getWorkerUrlFromDeployOutput(deployOutput);
 
   if (!workerUrl) {
     throw new Error("Worker API URL could not be detected; frontend bundle was not generated.");
