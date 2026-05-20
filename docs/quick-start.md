@@ -1,317 +1,247 @@
-# 星轨手札全栈部署教程
+# YuuComments 快速启动
 
-这份教程面向第一次部署博客的新手，目标是把下面两个项目一起部署成功：
+# YuuComments Quick Start
 
-- 前端仓库：`Mizuki`
-- 评论后端仓库：`YuuComments`
+这份文档介绍如何从零部署 YuuComments。
+This guide explains how to deploy YuuComments from scratch.
 
-最终效果是：
+YuuComments 现在的推荐入口是一个命令：`pnpm deploy:backend`。
+The recommended entry point is now one command: `pnpm deploy:backend`.
 
-1. `Mizuki` 负责生成并发布博客静态页面。
-2. `YuuComments` 负责提供评论 API、保存评论数据、处理后台审核。
-3. 前端通过环境变量访问后端，评论框通过 Cloudflare Turnstile 做人机验证。
+README 只保留最短启动方式，详细步骤都放在这份文档里。
+The README keeps only the shortest path, while the detailed steps live in this document.
 
-本文默认你使用：
+## 1. 先理解运行逻辑
 
-- 前端平台：Vercel
-- 后端平台：Cloudflare Workers + D1
-- 包管理器：`pnpm`
-- 操作系统：Windows PowerShell
+## 1. Understand The Runtime Flow
 
-如果你想把前端部署到 GitHub Pages、Netlify 或 Cloudflare Pages，前端仓库里的 `docs/DEPLOYMENT.md` 已经有对应平台说明。本文重点讲最容易一次跑通的组合。
+YuuComments 由 Worker API、D1 数据库、前端评论组件和静态后台四部分组成。
+YuuComments has four parts: the Worker API, the D1 database, the frontend comment widget, and the static admin dashboard.
 
-## 1. 先理解两个仓库分别做什么
+Worker API 负责评论读取、评论提交、后台查询和状态更新。
+The Worker API handles comment reads, comment creation, admin listing, and moderation updates.
 
-### 1.1 前端仓库 `Mizuki`
+D1 负责保存评论数据。
+D1 stores the comment data.
 
-这是一个 Astro 静态博客项目。
+前端评论组件挂载在 `#yuucomments` 或兼容的 `#yuulog-comments` 元素上。
+The frontend widget mounts on `#yuucomments` or the compatible `#yuulog-comments` element.
 
-它的关键文件有：
+前端组件会读取 `window.YuuCommentsConfig` 里的 Worker 地址和 Turnstile site key。
+The frontend widget reads the Worker URL and Turnstile site key from `window.YuuCommentsConfig`.
 
-- `package.json`
-  - `pnpm dev`：本地开发
-  - `pnpm build`：生产构建
-  - `pnpm preview`：预览构建结果
-- `.env.example`
-  - `PUBLIC_COMMENTS_API_BASE_URL`
-  - `PUBLIC_TURNSTILE_SITE_KEY`
-- `src/components/comments/CommentBox.astro`
-  - 真正调用评论后端接口的评论组件
-- `vercel.json`
-  - Vercel 的构建配置
-- `src/config.ts`
-  - 站点域名、标题等博客配置
+后台页面是静态文件，发布后通过 `ADMIN_TOKEN` 调用 Worker 管理接口。
+The admin dashboard is static, and it calls the Worker admin API with `ADMIN_TOKEN` after being published.
 
-需要特别注意：
+## 2. 准备条件
 
-- 当前评论组件不是旧的 `commentConfig` 开关控制，而是直接挂在文章页上。
-- `CommentBox.astro` 默认会读取：
-  - `PUBLIC_COMMENTS_API_BASE_URL`
-  - `PUBLIC_TURNSTILE_SITE_KEY`
-- 如果 `PUBLIC_TURNSTILE_SITE_KEY` 没配，前端会直接提示“评论验证未配置，暂时无法提交评论”。
+## 2. Requirements
 
-### 1.2 评论后端仓库 `YuuComments`
+你需要一个 Cloudflare 账号。
+You need a Cloudflare account.
 
-这是一个基于 Cloudflare Workers、TypeScript 和 D1 的评论后端。
+你需要本机已经安装 Node.js、pnpm 和 Git。
+You need Node.js, pnpm, and Git installed locally.
 
-它的关键文件有：
+项目当前使用 `pnpm@11.0.9`。
+This project currently uses `pnpm@11.0.9`.
 
-- `worker/wrangler.toml`
-  - Worker 名称、D1 数据库绑定、必需 secrets
-- `worker/deploy-backend.ps1`
-  - 一键部署脚本
-- `worker/migrations/`
-  - 数据库迁移文件
-- `worker/src/utils/cors.ts`
-  - 前端域名白名单
-- `worker/src/routes/createComment.ts`
-  - 评论提交逻辑
-- `worker/src/routes/adminComments.ts`
-  - 后台查询和审核接口
-
-后端提供的主要接口：
-
-```text
-GET    /api/comments?path=/xxx
-POST   /api/comments
-GET    /api/admin/comments?status=approved
-PATCH  /api/admin/comments/:id/status
-```
-
-需要特别注意：
-
-- 正式环境必须配置 `TURNSTILE_SECRET_KEY`。
-- 管理接口依赖 `ADMIN_TOKEN`。
-- 当前 `worker/src/utils/cors.ts` 里的生产白名单还是示例域名：
-
-```ts
-const ALLOWED_ORIGINS = new Set([
-  "https://example.com",
-  "https://www.example.com",
-  "http://localhost:4321",
-  "http://localhost:8787",
-]);
-```
-
-如果你不把自己的前端域名加进去，前端虽然能访问页面，但浏览器会拦截评论接口请求。
-
-## 2. 部署前要准备什么
-
-### 2.1 账号
-
-你至少需要：
-
-1. 一个 Cloudflare 账号
-2. 一个 Vercel 账号
-3. 一个 GitHub 账号
-
-### 2.2 本机软件
-
-建议先安装：
-
-1. Node.js
-2. pnpm
-3. Git
-
-本项目已经指定了 pnpm 版本：
-
-- 后端：`pnpm@11.0.9`
-- 前端：`pnpm@10.22.0`
-
-如果你安装了 Corepack，通常可以这样启用 pnpm：
+如果你使用 Corepack，可以先启用它。
+If you use Corepack, enable it first.
 
 ```powershell
 corepack enable
 ```
 
-### 2.3 域名建议
-
-为了后续配置清楚，推荐准备两个域名：
-
-- 博客前端：`https://example.com`
-- 评论后端：`https://comments.example.com`
-
-这样职责会非常清晰。
-
-如果你暂时还没有自定义域名，也可以先用：
-
-- Vercel 自动域名
-- Cloudflare Workers 自动域名
-
-但等你换成正式域名时，需要同步修改前端环境变量和后端 CORS 白名单。
-
-### 2.4 Turnstile
-
-评论系统需要 Cloudflare Turnstile 的两类 key：
-
-1. `site key`
-   - 给前端使用
-   - 放在 `PUBLIC_TURNSTILE_SITE_KEY`
-2. `secret key`
-   - 给后端使用
-   - 放在 `TURNSTILE_SECRET_KEY`
-
-这两个值不是一回事，不能互换。
-
-## 3. 推荐的整体部署顺序
-
-第一次部署时，建议按这个顺序来：
-
-1. 先部署评论后端
-2. 拿到后端公开地址
-3. 再部署前端
-4. 最后联调评论功能
-
-原因很简单：
-
-- 前端需要知道评论 API 地址
-- 前端需要知道 Turnstile 的 `site key`
-- 后端先上线后，前端环境变量才能一次填完整
-
-## 4. 第一步：部署评论后端
-
-### 4.1 进入后端仓库
-
-```powershell
-cd path\to\YuuComments
-pnpm setup
-```
-
-### 4.2 登录 Cloudflare
+你还需要提前登录 Cloudflare，或者在部署脚本提示时再登录。
+You also need to log in to Cloudflare in advance, or do it when the deployment script asks.
 
 ```powershell
 pnpm exec wrangler login
 ```
 
-命令执行后浏览器会打开授权页面，按提示登录即可。
+## 3. 进入项目目录
 
-登录成功后，可以验证一下：
+## 3. Enter The Project Directory
 
-```powershell
-pnpm exec wrangler whoami
-```
+先克隆或下载本仓库。
+Clone or download this repository first.
 
-### 4.3 准备 Turnstile
-
-你有三种方式，任选一种。
-
-方式 A：让脚本自动创建新的 Turnstile widget
-
-如果你希望第一次部署时由脚本自动创建一个名为 `YuuComments` 的 widget，需要先准备：
+然后进入 YuuComments 项目目录。
+Then enter the YuuComments project directory.
 
 ```powershell
-$env:CLOUDFLARE_API_TOKEN = "你的 Cloudflare API token"
-$env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
+cd path\to\yuulog-comments
 ```
 
-要求：
+如果你已经在项目目录里，可以跳过这一步。
+If you are already in the project directory, you can skip this step.
 
-- `CLOUDFLARE_API_TOKEN` 至少有 `Account -> Turnstile -> Edit` 权限
-- `TURNSTILE_HOSTNAMES` 只写 hostname，不要写 `https://`
-- 脚本会自动额外加入 `127.0.0.1` 和 `localhost`
+## 4. 推荐方式：一键部署
 
-在 Cloudflare 创建 token 页面中，`API token templates` 是常见用途的预设权限套餐，不是 YuuComments 这里要用的专用类型。  
-请点击 `Create Custom Token`，再手动添加 `Account -> Turnstile -> Edit`，这样权限最小也最准确。
+## 4. Recommended Path: One-Command Deployment
 
-如果没有提前设置 `TURNSTILE_HOSTNAMES`，脚本会在首次创建 widget 时提示你输入正式站点 hostname。
-
-方式 B：直接提供现有 Turnstile key
-
-临时环境变量：
-
-```powershell
-$env:TURNSTILE_SECRET_KEY = "你的 Turnstile secret key"
-```
-
-或者创建本地文件 `secrets.production.json`：
-
-```json
-{
-  "PUBLIC_TURNSTILE_SITE_KEY": "你的 Turnstile site key",
-  "TURNSTILE_SECRET_KEY": "你的 Turnstile secret key"
-}
-```
-
-方式 C：什么都不提前写，等部署脚本执行时在终端里输入。
-
-推荐新手优先使用方式 A 或方式 B，因为：
-
-- 以后重复部署更省事
-- 这个文件已经被 `.gitignore` 忽略，不会误提交
-
-### 4.4 修改 CORS 白名单
-
-打开：
-
-```text
-worker/src/utils/cors.ts
-```
-
-把示例域名替换成你的真实前端域名，例如：
-
-```ts
-const ALLOWED_ORIGINS = new Set([
-  "https://example.com",
-  "https://www.example.com",
-  "http://localhost:4321",
-  "http://localhost:8787",
-]);
-```
-
-如果你还在测试 Vercel 临时域名，也可以把它暂时加入白名单，例如：
-
-```ts
-"https://your-project.vercel.app",
-```
-
-### 4.5 执行一键部署
+运行下面这个命令即可开始完整部署流程。
+Run the command below to start the full deployment flow.
 
 ```powershell
 pnpm deploy:backend
 ```
 
-这个脚本会自动完成：
+这个命令会自动安装依赖。
+This command installs dependencies automatically.
 
-1. 安装依赖
-2. 检查 Cloudflare 登录状态
-3. 如果 D1 数据库不存在，则自动创建
-4. 把真实的 `database_id` 写回 `worker/wrangler.toml`
-5. 自动生成 `ADMIN_TOKEN`
-6. 上传缺失的 Worker secrets
-7. 执行远程数据库迁移
-8. 部署 Worker
-9. 生成 `dist/frontend/comments.js`
-10. 生成 `dist/frontend/comments.css`
-11. 生成 `dist/frontend/yuucomments.config.js`
+这个命令会检查 Cloudflare 登录状态。
+This command checks the Cloudflare login state.
 
-第一次部署成功后，你会得到：
+这个命令会在缺少 `worker/wrangler.toml` 时从 `worker/wrangler.toml.example` 生成配置文件。
+This command creates `worker/wrangler.toml` from `worker/wrangler.toml.example` when the config file is missing.
 
-- 一个 Worker 地址
-- 一个 D1 数据库
-- 一个本地保存的 `ADMIN_TOKEN`
-- 一组可以直接发布的前端文件
+这个命令会查找名为 `yuucomments-db` 的 D1 数据库。
+This command looks for the D1 database named `yuucomments-db`.
 
-### 4.6 记住这两个值
+如果 D1 数据库不存在，脚本会自动创建它。
+If the D1 database does not exist, the script creates it automatically.
 
-后面会用到：
+如果 `database_id` 不一致，脚本会把真实 ID 写回 `worker/wrangler.toml`。
+If `database_id` does not match, the script writes the real ID back to `worker/wrangler.toml`.
 
-1. Worker 的公开地址  
-   例如：
+这个命令会准备或复用 Turnstile 配置。
+This command prepares or reuses the Turnstile configuration.
 
-```text
-https://comments.example.com
+这个命令会生成或复用 `ADMIN_TOKEN`。
+This command creates or reuses `ADMIN_TOKEN`.
+
+这个命令会上传缺失的 Worker secrets。
+This command uploads missing Worker secrets.
+
+这个命令会运行 TypeScript 检查。
+This command runs the TypeScript check.
+
+这个命令会执行远程 D1 migration。
+This command applies remote D1 migrations.
+
+这个命令会部署 Cloudflare Worker。
+This command deploys the Cloudflare Worker.
+
+这个命令会生成 `dist/frontend/`、`dist/astro/` 和 `dist/admin/`。
+This command generates `dist/frontend/`, `dist/astro/`, and `dist/admin/`.
+
+## 5. Turnstile 配置方式
+
+## 5. Turnstile Options
+
+YuuComments 需要 Turnstile site key 和 Turnstile secret key。
+YuuComments needs a Turnstile site key and a Turnstile secret key.
+
+site key 会写入前端配置，可以公开。
+The site key is written into frontend config and can be public.
+
+secret key 会作为 Worker secret 使用，不能公开。
+The secret key is used as a Worker secret and must stay private.
+
+### 方式 A：让脚本自动创建 Turnstile
+
+### Option A: Let The Script Create Turnstile
+
+如果你想让脚本自动创建 Turnstile widget，请先设置 Cloudflare API token。
+If you want the script to create the Turnstile widget automatically, set a Cloudflare API token first.
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = "your-cloudflare-api-token"
+$env:TURNSTILE_HOSTNAMES = "example.com,www.example.com"
 ```
 
-2. `ADMIN_TOKEN`  
-   它会被保存在：
+`CLOUDFLARE_API_TOKEN` 至少需要 `Account -> Turnstile -> Edit` 权限。
+`CLOUDFLARE_API_TOKEN` needs at least the `Account -> Turnstile -> Edit` permission.
 
-```text
-secrets.production.json
+`TURNSTILE_HOSTNAMES` 只写 hostname，不要写 `https://`。
+`TURNSTILE_HOSTNAMES` should contain hostnames only, without `https://`.
+
+脚本会自动额外加入 `127.0.0.1` 和 `localhost`。
+The script also adds `127.0.0.1` and `localhost` automatically.
+
+如果你没有提前设置 `TURNSTILE_HOSTNAMES`，脚本会在运行时询问。
+If you do not set `TURNSTILE_HOSTNAMES` in advance, the script asks for it at runtime.
+
+### 方式 B：使用已有 Turnstile key
+
+### Option B: Use Existing Turnstile Keys
+
+如果你已经有 Turnstile key，可以创建 `secrets.production.json`。
+If you already have Turnstile keys, create `secrets.production.json`.
+
+```json
+{
+  "PUBLIC_TURNSTILE_SITE_KEY": "your-turnstile-site-key",
+  "TURNSTILE_SECRET_KEY": "your-turnstile-secret-key",
+  "TURNSTILE_HOSTNAMES": ["example.com", "www.example.com"]
+}
 ```
 
-不要把它提交到 Git，也不要发给别人。
+`secrets.production.json` 已经被 `.gitignore` 忽略。
+`secrets.production.json` is already ignored by `.gitignore`.
 
-部署完成后，脚本还会输出最简普通 HTML 接入方式：
+不要把这个文件提交到 Git。
+Do not commit this file to Git.
+
+### 方式 C：运行时输入
+
+### Option C: Enter Values At Runtime
+
+你也可以什么都不提前写，直接运行 `pnpm deploy:backend`。
+You can also write nothing in advance and run `pnpm deploy:backend` directly.
+
+脚本会在需要时提示你输入 Cloudflare API token、hostname 或 Turnstile key。
+The script prompts you for the Cloudflare API token, hostnames, or Turnstile keys when needed.
+
+## 6. 部署成功后你会得到什么
+
+## 6. What You Get After Deployment
+
+部署成功后，终端会输出 Worker API URL。
+After deployment succeeds, the terminal prints the Worker API URL.
+
+部署成功后，终端会输出 `PUBLIC_TURNSTILE_SITE_KEY`。
+After deployment succeeds, the terminal prints `PUBLIC_TURNSTILE_SITE_KEY`.
+
+部署成功后，终端会输出 `ADMIN_TOKEN`，或者提示它已经远程配置。
+After deployment succeeds, the terminal prints `ADMIN_TOKEN`, or says it is already configured remotely.
+
+部署成功后，脚本会生成前端评论组件文件。
+After deployment succeeds, the script generates frontend widget files.
+
+```text
+dist/frontend/comments.js
+dist/frontend/comments.css
+dist/frontend/yuucomments.config.js
+```
+
+部署成功后，脚本会生成 Astro 组件。
+After deployment succeeds, the script generates the Astro component.
+
+```text
+dist/astro/YuuComments.astro
+```
+
+部署成功后，脚本会生成后台静态文件。
+After deployment succeeds, the script generates admin static files.
+
+```text
+dist/admin/index.html
+dist/admin/admin.js
+dist/admin/admin.css
+```
+
+## 7. 接入普通 HTML 网站
+
+## 7. Use With Plain HTML
+
+把 `dist/frontend/` 里的三个文件发布到你网站的 `/comments/` 目录。
+Publish the three files in `dist/frontend/` to your site's `/comments/` directory.
+
+在需要显示评论区的页面插入下面这段代码。
+Add the snippet below to the page where comments should appear.
 
 ```html
 <div id="yuucomments" data-page-key="/posts/example/"></div>
@@ -320,15 +250,21 @@ secrets.production.json
 <script src="/comments/comments.js" defer></script>
 ```
 
-把 `dist/frontend/` 里的三个文件发布到自己网站的 `/comments/` 目录即可。
+`data-page-key` 用来区分不同页面的评论。
+`data-page-key` separates comments for different pages.
 
-如果你使用 Astro，部署脚本还会自动生成：
+如果不写 `data-page-key`，前端会使用当前页面路径。
+If `data-page-key` is omitted, the frontend uses the current page path.
 
-```text
-dist/astro/YuuComments.astro
-```
+## 8. 接入 Astro
 
-把它复制到你的 Astro 项目组件目录后即可直接使用：
+## 8. Use With Astro
+
+把 `dist/astro/YuuComments.astro` 复制到你的 Astro 项目组件目录。
+Copy `dist/astro/YuuComments.astro` into your Astro project's component directory.
+
+在文章页面中引入组件。
+Import the component in your post page.
 
 ```astro
 ---
@@ -338,461 +274,212 @@ import YuuComments from "../components/YuuComments.astro";
 <YuuComments pageKey={Astro.url.pathname} />
 ```
 
-## 5. 第二步：本地验证后端是否正常
-
-### 5.1 检查类型
-
-```powershell
-pnpm typecheck
-```
-
-### 5.2 本地运行
-
-```powershell
-pnpm db:migrate:local
-pnpm dev
-```
-
-默认开发地址一般是：
-
-```text
-http://localhost:8787
-```
-
-### 5.3 本地开发时的特殊行为
-
-如果你在本地没有设置 `TURNSTILE_SECRET_KEY`：
-
-- Worker 会在 `localhost` 开发环境跳过 Turnstile 校验
-- 这样便于你先调通前后端
-
-但正式环境不会跳过，生产环境一定要配置 `TURNSTILE_SECRET_KEY`。
-
-### 5.4 用浏览器或接口工具测试
-
-你可以先访问：
-
-```text
-GET /api/comments?path=/posts/example/
-```
-
-期望返回：
-
-```json
-{
-  "ok": true,
-  "comments": []
-}
-```
-
-## 6. 第三步：部署前端
-
-### 6.1 进入前端仓库
-
-```powershell
-cd path\to\Mizuki
-```
-
-### 6.2 创建 `.env`
-
-从 `.env.example` 复制一份：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-然后至少填好这两个值：
-
-```env
-PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
-PUBLIC_TURNSTILE_SITE_KEY=你的 Turnstile site key
-```
-
-部署脚本也会在终端直接输出这两行，方便复制到 Astro / Mizuki：
+脚本也会在终端输出 Mizuki / Astro 可用的环境变量。
+The script also prints environment variables for Mizuki / Astro.
 
 ```env
 PUBLIC_COMMENTS_API_BASE_URL=<Worker API URL>
 PUBLIC_TURNSTILE_SITE_KEY=<Turnstile Site Key>
 ```
 
-如果你暂时不用内容分离：
+如果你的 Astro 项目使用自己的评论组件，可以直接使用这两个环境变量。
+If your Astro project uses its own comment component, you can use these two environment variables directly.
 
-```env
-ENABLE_CONTENT_SYNC=false
-```
+## 9. 发布管理后台
 
-### 6.3 修改站点域名
+## 9. Publish The Admin Dashboard
 
-打开：
+把 `dist/admin/` 里的文件发布到你网站的 `/admin/` 目录。
+Publish the files in `dist/admin/` to your site's `/admin/` directory.
 
-```text
-src/config.ts
-```
+打开后台页面后，输入 `ADMIN_TOKEN`。
+After opening the admin page, enter `ADMIN_TOKEN`.
 
-确认：
+后台会把 token 保存在浏览器 localStorage 中。
+The dashboard stores the token in browser localStorage.
 
-```ts
-  siteURL: "https://example.com/",
-```
+你可以在后台查看评论、搜索评论、切换状态和删除评论。
+You can view comments, search comments, change statuses, and delete comments in the dashboard.
 
-这会影响：
+## 10. 后端接口
 
-- sitemap
-- canonical URL
-- SEO 相关输出
+## 10. Backend API
 
-### 6.4 本地安装和预览
+前端读取评论时会调用 `GET /api/comments?path=/xxx`。
+The frontend calls `GET /api/comments?path=/xxx` to read comments.
 
-```powershell
-pnpm install
-pnpm dev
-```
+前端提交评论时会调用 `POST /api/comments`。
+The frontend calls `POST /api/comments` to create comments.
 
-默认开发地址通常是：
+后台读取评论时会调用 `GET /api/admin/comments`。
+The dashboard calls `GET /api/admin/comments` to list comments.
 
-```text
-http://localhost:4321
-```
+后台修改状态时会调用 `PATCH /api/admin/comments/:id/status`。
+The dashboard calls `PATCH /api/admin/comments/:id/status` to update moderation status.
 
-打开任意文章页，确认页面底部能看到评论区。
+后台删除评论时会调用 `DELETE /api/admin/comments/:id`。
+The dashboard calls `DELETE /api/admin/comments/:id` to delete a comment.
 
-### 6.5 本地构建一次
+管理接口需要 `Authorization: Bearer <ADMIN_TOKEN>`。
+Admin endpoints require `Authorization: Bearer <ADMIN_TOKEN>`.
 
-```powershell
-pnpm build
-pnpm preview
-```
+## 11. CORS 和域名
 
-这样做的意义是：
+## 11. CORS And Domains
 
-- 提前发现构建时报错
-- 确认生产模式下页面也能正常生成
-- 避免把问题拖到 Vercel 上才看到
+部署脚本会根据 `TURNSTILE_HOSTNAMES` 尝试把站点域名加入 `worker/src/utils/cors.ts`。
+The deployment script tries to add site domains to `worker/src/utils/cors.ts` based on `TURNSTILE_HOSTNAMES`.
 
-## 7. 第四步：把前端部署到 Vercel
-
-### 7.1 连接 GitHub 仓库
-
-1. 打开 Vercel
-2. 选择 `Import Git Repository`
-3. 选择你的 `Mizuki` 仓库
-
-### 7.2 检查构建配置
-
-这个仓库已经有 `vercel.json`，默认配置就是：
-
-- Framework：Astro
-- Install Command：`pnpm install`
-- Build Command：`pnpm build`
-- Output Directory：`dist`
-
-通常不需要你再改。
-
-### 7.3 在 Vercel 添加环境变量
-
-至少添加：
-
-```env
-PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
-PUBLIC_TURNSTILE_SITE_KEY=你的 Turnstile site key
-```
-
-如果你没有启用内容分离，可以继续保持：
-
-```env
-ENABLE_CONTENT_SYNC=false
-```
-
-如果你以后启用内容分离，再额外配置：
-
-```env
-ENABLE_CONTENT_SYNC=true
-CONTENT_REPO_URL=你的内容仓库地址
-CONTENT_DIR=./content
-```
-
-### 7.4 触发首次部署
-
-点击 `Deploy`。
-
-部署成功后，Vercel 会给你一个访问地址。  
-如果你要绑定正式域名，再在 Vercel 项目里配置自定义域名。
-
-## 8. 第五步：把两个项目真正接起来
-
-这一步是很多新手最容易漏的。
-
-### 8.1 前端要指向正确的后端
-
-确认 Vercel 环境变量：
-
-```env
-PUBLIC_COMMENTS_API_BASE_URL=https://comments.example.com
-```
-
-### 8.2 后端要允许正确的前端域名
-
-确认后端 `worker/src/utils/cors.ts` 包含：
-
-```ts
-  "https://example.com",
-  "https://www.example.com",
-```
-
-如果你现在实际访问的是 Vercel 临时域名，也要把临时域名一起加入白名单。
-
-### 8.3 改了 CORS 后要重新部署后端
+如果你后续更换前端域名，请重新运行部署脚本。
+If you change the frontend domain later, run the deployment script again.
 
 ```powershell
-cd path\to\YuuComments
 pnpm deploy:backend
 ```
 
-### 8.4 改了前端环境变量后要重新部署前端
+如果浏览器提示 CORS 错误，请检查 `worker/src/utils/cors.ts` 是否包含真实前端域名。
+If the browser reports a CORS error, check whether `worker/src/utils/cors.ts` contains the real frontend domain.
 
-在 Vercel 中重新部署一次，或者重新推送代码触发部署。
+域名应该包含协议，例如 `https://example.com`。
+The domain should include the protocol, such as `https://example.com`.
 
-## 9. 上线后怎么验收
+## 12. 本地开发
 
-### 9.1 验证页面加载
+## 12. Local Development
 
-打开一篇真实文章页，确认：
-
-1. 页面能打开
-2. 底部能看到评论区
-3. Turnstile 人机验证能加载
-
-### 9.2 验证评论读取
-
-如果还没有评论，页面应显示：
-
-```text
-还没有评论，来留下第一条吧。
-```
-
-这说明前端已经成功调用：
-
-```text
-GET /api/comments
-```
-
-### 9.3 验证评论提交
-
-1. 填昵称
-2. 填评论内容
-3. 完成 Turnstile
-4. 点击提交
-
-当前后端代码中的默认评论状态是：
-
-```ts
-const DEFAULT_COMMENT_STATUS: CommentStatus = "approved";
-```
-
-因此评论提交后理论上会立刻显示，接口返回文案为“评论已发布”。  
-后续如果你想改成真正审核流，可以把默认状态改成 `pending`，并同步调整返回文案。
-
-### 9.4 验证后台接口
-
-用 `ADMIN_TOKEN` 调接口：
-
-```http
-GET /api/admin/comments?status=approved
-Authorization: Bearer <ADMIN_TOKEN>
-```
-
-如果能返回评论列表，说明：
-
-- Worker 正常
-- D1 正常
-- `ADMIN_TOKEN` 正常
-
-## 10. 常见问题排查
-
-### 10.1 前端页面有评论框，但加载失败
-
-优先检查：
-
-1. `PUBLIC_COMMENTS_API_BASE_URL` 是否写对
-2. Worker 是否真的已经部署
-3. 浏览器开发者工具里是否出现 CORS 报错
-4. 后端 `worker/src/utils/cors.ts` 是否加了真实前端域名
-
-### 10.2 评论框显示“评论验证未配置，暂时无法提交评论”
-
-说明前端没有拿到：
-
-```env
-PUBLIC_TURNSTILE_SITE_KEY
-```
-
-检查：
-
-1. 本地 `.env`
-2. Vercel 项目环境变量
-3. 改完后是否重新部署
-
-### 10.3 提交评论时报“人机验证失败”
-
-检查：
-
-1. 前端用的是不是 `site key`
-2. 后端用的是不是同一个 Turnstile 应用对应的 `secret key`
-3. `TURNSTILE_SECRET_KEY` 是否已经作为 Worker secret 上传
-
-补充说明：
-
-- Turnstile Site Key 是公开 key，可以放前端
-- Turnstile Secret Key 是私密 key，只能放 Worker secret
-- `ADMIN_TOKEN` 是私密 key，只能站长自己保存
-- `CLOUDFLARE_API_TOKEN` 只用于部署，不能提交到 GitHub
-
-### 10.4 本地能用，线上不能用
-
-这通常是两个原因之一：
-
-1. 生产环境缺少 `TURNSTILE_SECRET_KEY`
-2. 线上域名不在 CORS 白名单里
-
-### 10.5 重新部署后 D1 数据库不见了
-
-正常情况下不会。  
-这个项目的数据库名固定为：
-
-```text
-yuucomments-db
-```
-
-部署脚本会优先查找现有数据库，只有不存在时才创建新的。  
-真正需要小心的是不要手动换了数据库名，又忘记迁移数据。
-
-### 10.6 内容更新了，但前端站点没有自动刷新
-
-如果你启用了“内容仓库分离”，那是另一个独立问题。  
-请看前端仓库：
-
-```text
-docs/AUTO_BUILD_TRIGGER.md
-```
-
-里面已经写了如何用 Repository Dispatch、Webhook 或定时任务触发重新构建。
-
-## 11. 最小可行部署清单
-
-如果你只想快速确认自己没漏步骤，可以按这个清单检查：
-
-### 后端
-
-- [ ] 已登录 Cloudflare
-- [ ] 已准备 `TURNSTILE_SECRET_KEY`
-- [ ] 已把真实前端域名加入 `worker/src/utils/cors.ts`
-- [ ] 已运行 `pnpm deploy:backend`
-- [ ] 已保存 `ADMIN_TOKEN`
-- [ ] Worker 地址可访问
-
-### 前端
-
-- [ ] 已设置 `PUBLIC_COMMENTS_API_BASE_URL`
-- [ ] 已设置 `PUBLIC_TURNSTILE_SITE_KEY`
-- [ ] 已确认 `siteURL`
-- [ ] `pnpm build` 成功
-- [ ] 已部署到 Vercel
-
-### 联调
-
-- [ ] 评论区能加载
-- [ ] Turnstile 能显示
-- [ ] 评论能成功提交
-- [ ] 后台接口能携带 `ADMIN_TOKEN` 访问
-
-## 12. 以后更新时怎么操作
-
-### 12.1 只改前端页面或样式
-
-```powershell
-cd path\to\Mizuki
-pnpm build
-```
-
-确认没问题后推送代码，交给 Vercel 自动部署。
-
-### 12.2 只改评论后端代码
-
-```powershell
-cd path\to\YuuComments
-pnpm deploy:backend
-```
-
-### 12.3 改了数据库结构
-
-1. 新增 migration 文件
-2. 本地先跑：
+如果你只想本地开发 Worker，可以先准备本地数据库。
+If you only want to develop the Worker locally, prepare the local database first.
 
 ```powershell
 pnpm db:migrate:local
 ```
 
-3. 部署时脚本会自动执行远程 migration：
+然后启动 Wrangler dev。
+Then start Wrangler dev.
+
+```powershell
+pnpm dev
+```
+
+默认本地地址通常是 `http://localhost:8787`。
+The default local URL is usually `http://localhost:8787`.
+
+本地开发时，Worker 会允许 localhost 场景下跳过 Turnstile 校验。
+During local development, the Worker allows localhost to bypass Turnstile verification.
+
+正式环境不会跳过 Turnstile。
+Production does not bypass Turnstile.
+
+## 13. 更新和重新部署
+
+## 13. Update And Redeploy
+
+以后修改 Worker、前端组件、后台或 migration 后，优先重新运行一键部署命令。
+After changing the Worker, frontend widget, dashboard, or migrations later, prefer running the one-command deployment again.
 
 ```powershell
 pnpm deploy:backend
 ```
 
-### 12.4 换域名
+不要把 `pnpm deploy` 和 `pnpm deploy:backend` 混用。
+Do not treat `pnpm deploy` and `pnpm deploy:backend` as the same command.
 
-如果你换了前端域名，至少改三处：
+`pnpm deploy` 只是普通 Wrangler 部署。
+`pnpm deploy` is only a normal Wrangler deploy.
 
-1. 前端 `src/config.ts` 的 `siteURL`
-2. 前端环境变量里的公开地址
-3. 后端 `worker/src/utils/cors.ts` 的白名单
+`pnpm deploy:backend` 才会处理依赖、D1、secrets、migration、Worker、前端文件和后台文件。
+`pnpm deploy:backend` handles dependencies, D1, secrets, migrations, the Worker, frontend files, and admin files.
 
-如果你换了后端域名，则至少改：
+## 14. 常见问题
 
-1. 前端 `PUBLIC_COMMENTS_API_BASE_URL`
-2. Turnstile 后台允许的域名配置
+## 14. Troubleshooting
 
-## 13. 新手最容易踩的五个坑
+### 评论区显示配置缺失
 
-1. 把 Turnstile `site key` 和 `secret key` 填反
-2. 只配前端变量，忘记后端 CORS
-3. 只本地 `.env` 写了变量，忘记在 Vercel 也写一遍
-4. 改了环境变量但没有重新部署
-5. 误以为 `pnpm deploy` 和 `pnpm deploy:backend` 一样
+### The Comment Widget Says Config Is Missing
 
-这里最后一个尤其要注意：
+请检查 `dist/frontend/yuucomments.config.js` 是否已经发布。
+Check whether `dist/frontend/yuucomments.config.js` has been published.
 
-- `pnpm deploy`
-  - 只是普通 `wrangler deploy`
-- `pnpm deploy:backend`
-  - 才会自动处理依赖、D1、secrets、migration 和 Worker 部署
+请检查页面是否先加载 `yuucomments.config.js`，再加载 `comments.js`。
+Check whether the page loads `yuucomments.config.js` before `comments.js`.
 
-第一次部署、或者你不确定当前状态时，优先用：
+请检查配置里是否包含 `apiBase` 和 `turnstileSiteKey`。
+Check whether the config contains `apiBase` and `turnstileSiteKey`.
 
-```powershell
-pnpm deploy:backend
-```
+### 评论加载失败
 
-## 14. 参考文件
+### Comments Fail To Load
 
-### 评论后端仓库
+请检查 Worker API URL 是否正确。
+Check whether the Worker API URL is correct.
 
-- `README.md`
-- `package.json`
-- `worker/wrangler.toml.example`
-- `worker/deploy-backend.ps1`
-- `worker/src/utils/cors.ts`
-- `worker/src/routes/createComment.ts`
-- `worker/src/routes/adminComments.ts`
-- `worker/migrations/0001_init.sql`
-- `worker/migrations/0002_add_comment_email.sql`
+请检查浏览器控制台是否有 CORS 报错。
+Check whether the browser console shows a CORS error.
 
-### 前端仓库
+请检查当前页面路径是否和 `data-page-key` 一致。
+Check whether the current page path matches `data-page-key`.
 
-- `.env.example`
-- `package.json`
-- `vercel.json`
-- `astro.config.mjs`
-- `src/config.ts`
-- `src/components/comments/CommentBox.astro`
-- `docs/DEPLOYMENT.md`
-- `docs/AUTO_BUILD_TRIGGER.md`
+### 评论提交失败
+
+### Comment Submission Fails
+
+请检查 Turnstile 是否正常显示并完成验证。
+Check whether Turnstile appears and completes verification.
+
+请检查 `TURNSTILE_SECRET_KEY` 是否已经作为 Worker secret 上传。
+Check whether `TURNSTILE_SECRET_KEY` has been uploaded as a Worker secret.
+
+请确认前端使用的是 site key，后端使用的是 secret key。
+Make sure the frontend uses the site key and the backend uses the secret key.
+
+### 后台无法登录
+
+### Admin Login Fails
+
+请确认输入的是部署脚本输出的 `ADMIN_TOKEN`。
+Make sure you entered the `ADMIN_TOKEN` printed by the deployment script.
+
+如果脚本提示 token 已经远程配置但本地不可见，请使用你之前保存的 token。
+If the script says the token is already configured remotely but unavailable locally, use the token you saved earlier.
+
+如果忘记 token，可以在 Cloudflare Worker secrets 中重新设置 `ADMIN_TOKEN` 后再部署。
+If you forgot the token, reset `ADMIN_TOKEN` in Cloudflare Worker secrets and redeploy.
+
+### 重新部署后数据库是否会丢失
+
+### Will Redeploying Delete The Database
+
+正常重新运行 `pnpm deploy:backend` 不会删除 D1 数据库。
+Normally, rerunning `pnpm deploy:backend` does not delete the D1 database.
+
+脚本会优先复用名为 `yuucomments-db` 的现有数据库。
+The script prefers reusing the existing database named `yuucomments-db`.
+
+不要手动删除 D1 数据库，除非你已经备份评论数据。
+Do not manually delete the D1 database unless you have backed up comment data.
+
+## 15. 最小检查清单
+
+## 15. Minimal Checklist
+
+- [ ] 已登录 Cloudflare。
+- [ ] Cloudflare login is ready.
+- [ ] 已运行 `pnpm deploy:backend`。
+- [ ] `pnpm deploy:backend` has been run.
+- [ ] 已保存 `ADMIN_TOKEN`。
+- [ ] `ADMIN_TOKEN` has been saved.
+- [ ] 已发布 `dist/frontend/` 到 `/comments/`。
+- [ ] `dist/frontend/` has been published to `/comments/`.
+- [ ] 已在页面插入评论区代码。
+- [ ] The comment snippet has been added to the page.
+- [ ] 如需后台，已发布 `dist/admin/` 到 `/admin/`。
+- [ ] If the dashboard is needed, `dist/admin/` has been published to `/admin/`.
+- [ ] 评论区可以加载。
+- [ ] The comment widget loads.
+- [ ] Turnstile 可以显示。
+- [ ] Turnstile appears.
+- [ ] 评论可以提交。
+- [ ] Comments can be submitted.
+- [ ] 后台可以用 `ADMIN_TOKEN` 访问。
+- [ ] The dashboard can be accessed with `ADMIN_TOKEN`.
