@@ -33,6 +33,7 @@ const workerRoot = path.join(repoRoot, "worker");
 const wranglerConfigPath = path.join(workerRoot, "wrangler.toml");
 const wranglerExamplePath = path.join(workerRoot, "wrangler.toml.example");
 const wranglerConfigArg = "worker/wrangler.toml";
+const frontendRoot = path.join(repoRoot, "frontend");
 const frontendSourceRoot = path.join(repoRoot, "frontend", "vanilla");
 const frontendDistRoot = path.join(repoRoot, "dist", "frontend");
 const astroSourceRoot = path.join(repoRoot, "frontend", "astro");
@@ -594,6 +595,9 @@ function newFrontendBundle(workerUrl: string, turnstileSiteKey: string) {
   ensureDirectory(frontendDistRoot);
   copyFileSync(path.join(frontendSourceRoot, "comments.js"), path.join(frontendDistRoot, "comments.js"));
   copyFileSync(path.join(frontendSourceRoot, "comments.css"), path.join(frontendDistRoot, "comments.css"));
+  copyFileSync(path.join(frontendRoot, "embed.html"), path.join(frontendDistRoot, "embed.html"));
+  copyFileSync(path.join(frontendRoot, "embed-resize.js"), path.join(frontendDistRoot, "embed-resize.js"));
+  copyFileSync(path.join(frontendRoot, "yuucomments-embed.js"), path.join(frontendDistRoot, "yuucomments-embed.js"));
 
   const config = `window.YuuCommentsConfig = {
   apiBase: "${workerUrl}",
@@ -899,7 +903,11 @@ async function main() {
   console.log('<script src="/comments/yuucomments.config.js"></script>');
   console.log('<script src="/comments/comments.js" defer></script>');
   console.log("");
-  console.log("Publish the three files in dist/frontend/ to your site's /comments/ directory.");
+  console.log("Iframe frontend embed:");
+  console.log('<div id="yuucomments-iframe" data-page-key="/posts/example/" data-src="/comments/embed.html"></div>');
+  console.log('<script src="/comments/yuucomments-embed.js" defer></script>');
+  console.log("");
+  console.log("Publish the files in dist/frontend/ to your site's /comments/ directory.");
   console.log("Copy dist/astro/YuuComments.astro into any Astro project to get a minimal ready-to-use component.");
   console.log("Publish the files in dist/admin/ to your site's /admin/ directory.");
   console.log("");

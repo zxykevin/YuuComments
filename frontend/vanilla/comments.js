@@ -9,6 +9,16 @@
     };
   }
 
+  function resolvePageKey(root) {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      root.dataset.pageKey ||
+      params.get("pageKey") ||
+      params.get("path") ||
+      window.location.pathname
+    );
+  }
+
   function isHttpWebsite(value) {
     if (!value) return true;
     try {
@@ -240,7 +250,7 @@
   async function loadComments(root) {
     const { list } = getElements(root);
     if (!list) return;
-    const pageKey = root.dataset.pageKey || window.location.pathname;
+    const pageKey = resolvePageKey(root);
     const { apiBase } = resolveConfig(root);
     renderState(list, "正在加载评论...");
 
@@ -339,7 +349,7 @@
             Accept: "application/json",
           },
           body: JSON.stringify({
-            pagePath: root.dataset.pageKey || window.location.pathname,
+            pagePath: resolvePageKey(root),
             parentId: root.__yuuCommentsReplyTarget?.id ?? null,
             nickname,
             email,
