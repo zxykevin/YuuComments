@@ -14,6 +14,7 @@ export interface CommentRow {
   website: string | null;
   content: string;
   status: string;
+  ip: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,7 @@ export interface CommentResponse {
 
 export interface AdminCommentResponse extends CommentResponse {
   email: string | null;
+  ip: string | null;
 }
 
 export interface CreateCommentInput {

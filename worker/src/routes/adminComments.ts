@@ -29,6 +29,7 @@ function toCommentResponse(row: CommentRow): AdminCommentResponse {
     website: row.website,
     content: row.content,
     status: row.status,
+    ip: row.ip,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -73,6 +74,7 @@ export async function getAdminComments(
       website,
       content,
       status,
+      ip,
       created_at,
       updated_at
     FROM comments`;

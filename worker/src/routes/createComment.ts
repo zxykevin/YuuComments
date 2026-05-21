@@ -68,8 +68,9 @@ export async function createComment(request: Request, env: Env): Promise<Respons
       content,
       status,
       user_agent,
+      ip,
       ip_hash
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -82,6 +83,7 @@ export async function createComment(request: Request, env: Env): Promise<Respons
       input.content,
       DEFAULT_COMMENT_STATUS,
       request.headers.get("User-Agent"),
+      ip,
       ipHash,
     )
     .run();

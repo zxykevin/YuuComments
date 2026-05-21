@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS comments (
   content TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   user_agent TEXT,
+  ip TEXT,
   ip_hash TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
