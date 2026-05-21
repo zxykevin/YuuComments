@@ -2,11 +2,22 @@
   const ROOT_SELECTOR = "#yuucomments-iframe";
   const MIN_HEIGHT = 320;
 
-  function newIframeSrc(src, pageKey) {
+  function newIframeSrc(src, root) {
     const url = new URL(src, window.location.href);
+    const pageKey = root.dataset.pageKey || "";
+    const theme = root.dataset.theme || "";
+    const lang = root.dataset.lang || "";
+
     if (pageKey) {
       url.searchParams.set("pageKey", pageKey);
     }
+    if (theme) {
+      url.searchParams.set("theme", theme);
+    }
+    if (lang) {
+      url.searchParams.set("lang", lang);
+    }
+
     return url.toString();
   }
 
@@ -20,7 +31,7 @@
     root.dataset.yuuCommentsIframeReady = "true";
 
     const iframe = document.createElement("iframe");
-    iframe.src = newIframeSrc(src, root.dataset.pageKey || "");
+    iframe.src = newIframeSrc(src, root);
     iframe.title = "YuuComments";
     iframe.loading = "lazy";
     iframe.style.width = "100%";

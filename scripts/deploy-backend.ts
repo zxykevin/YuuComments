@@ -904,7 +904,7 @@ async function main() {
   console.log('<script src="/comments/comments.js" defer></script>');
   console.log("");
   console.log("Iframe frontend embed:");
-  console.log('<div id="yuucomments-iframe" data-page-key="/posts/example/" data-src="/comments/embed.html"></div>');
+  console.log('<div id="yuucomments-iframe" data-page-key="/posts/example/" data-src="/comments/embed.html" data-theme="light" data-lang="zh-CN"></div>');
   console.log('<script src="/comments/yuucomments-embed.js" defer></script>');
   console.log("");
   console.log("Publish the files in dist/frontend/ to your site's /comments/ directory.");

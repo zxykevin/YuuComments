@@ -149,6 +149,29 @@ Then add this snippet to the page where comments should appear.
 <script src="/comments/comments.js" defer></script>
 ```
 
+如果你希望评论区和页面 CSS 隔离，可以使用 iframe 嵌入方式。
+If you want to isolate the comment widget from page CSS, you can use iframe embed mode.
+
+iframe 嵌入只需要页面加载 `yuucomments-embed.js`，评论资源仍然建议部署在 `/comments/` 目录。
+Iframe embed only needs the page to load `yuucomments-embed.js`, while the comment assets should still be deployed under `/comments/`.
+
+```html
+<div
+  id="yuucomments-iframe"
+  data-page-key="/posts/example/"
+  data-src="/comments/embed.html"
+  data-theme="dark"
+  data-lang="zh-CN"
+></div>
+<script src="/comments/yuucomments-embed.js" defer></script>
+```
+
+`data-theme` 支持 `light` 和 `dark`，`data-lang` 支持 `zh-CN` 和 `en`。
+`data-theme` supports `light` and `dark`, and `data-lang` supports `zh-CN` and `en`.
+
+更多 iframe 用法请阅读 [iframe 嵌入 / Iframe Embed](docs/embed.md)。
+For more iframe usage details, read [iframe 嵌入 / Iframe Embed](docs/embed.md).
+
 详细分步教程请阅读 [Quick Start / 快速开始](docs/quick-start.md)。
 For the detailed step-by-step guide, read [Quick Start / 快速开始](docs/quick-start.md).
 
@@ -194,6 +217,7 @@ pnpm dev
 ## Documentation / 文档
 
 - [Quick Start / 快速开始](docs/quick-start.md)
+- [iframe 嵌入 / Iframe Embed](docs/embed.md)
 - [Cloudflare API Token](docs/cloudflare-api-token.md)
 - [Turnstile](docs/turnstile.md)
 - [Security / 安全说明](docs/security.md)

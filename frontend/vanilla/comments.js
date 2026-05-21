@@ -1,5 +1,55 @@
 (() => {
   const ROOT_SELECTOR = "#yuucomments, #yuulog-comments";
+  const I18N = {
+    "zh-CN": {
+      comments: "评论",
+      postComment: "发表评论",
+      cancelReply: "取消回复",
+      nickname: "昵称",
+      email: "邮箱",
+      website: "网站",
+      content: "评论内容",
+      submit: "提交",
+      submitting: "提交中...",
+      configMissing: "YuuComments 配置缺失：apiBase 或 turnstileSiteKey",
+      empty: "还没有评论。",
+      reply: "回复",
+      loading: "正在加载评论...",
+      loadFailed: "评论加载失败。",
+      loadFailedError: "评论加载失败",
+      missingSiteKey: "缺少 Turnstile site key。",
+      verifyFirst: "请先完成人机验证。",
+      verifyFailed: "验证组件加载失败。",
+      requiredFields: "昵称和评论内容不能为空。",
+      invalidWebsite: "网站必须以 http:// 或 https:// 开头。",
+      submitFailed: "评论提交失败。",
+      submitted: "评论已提交。",
+    },
+    en: {
+      comments: "Comments",
+      postComment: "Post a comment",
+      cancelReply: "Cancel reply",
+      nickname: "Name",
+      email: "Email",
+      website: "Website",
+      content: "Comment",
+      submit: "Submit",
+      submitting: "Submitting...",
+      configMissing: "YuuComments configuration is missing: apiBase or turnstileSiteKey",
+      empty: "No comments yet.",
+      reply: "Reply",
+      loading: "Loading comments...",
+      loadFailed: "Failed to load comments.",
+      loadFailedError: "Failed to load comments",
+      missingSiteKey: "Missing Turnstile site key.",
+      verifyFirst: "Please complete the verification first.",
+      verifyFailed: "Verification widget failed to load.",
+      requiredFields: "Name and comment content are required.",
+      invalidWebsite: "Website must start with http:// or https://.",
+      submitFailed: "Failed to submit comment.",
+      submitted: "Comment submitted.",
+    },
+  };
 
   function resolveConfig(root) {
     const globalConfig = window.YuuCommentsConfig ?? {};
@@ -17,6 +67,29 @@
       params.get("path") ||
       window.location.pathname
     );
+  }
+
+  function resolveTheme(root) {
+    const params = new URLSearchParams(window.location.search);
+    const theme = root.dataset.theme || params.get("theme") || "";
+    return theme === "dark" ? "dark" : "light";
+  }
+
+  function resolveLang(root) {
+    const params = new URLSearchParams(window.location.search);
+    const lang = root.dataset.lang || params.get("lang") || "";
+    return lang.toLowerCase().startsWith("en") ? "en" : "zh-CN";
+  }
+
+  function applyPresentation(root) {
+    root.dataset.theme = resolveTheme(root);
+    root.dataset.lang = resolveLang(root);
+    root.lang = root.dataset.lang;
+  }
+
+  function t(root, key) {
+    const lang = resolveLang(root);
+    return I18N[lang][key] || I18N["zh-CN"][key] || key;
   }
 
   function isHttpWebsite(value) {
@@ -49,39 +122,39 @@
   function createMarkup(root) {
     root.classList.add("yc-root");
     root.innerHTML = `
-      <section class="yc-section" aria-label="评论">
+      <section class="yc-section" aria-label="${t(root, "comments")}">
         <div class="yc-header">
-          <h2>评论</h2>
+          <h2>${t(root, "comments")}</h2>
           <span data-yc-count aria-live="polite"></span>
         </div>
         <div class="yc-list" data-yc-list aria-live="polite"></div>
         <form class="yc-form" data-yc-form novalidate>
           <div class="yc-form-heading">
-            <h3 data-yc-form-title>发表评论</h3>
-            <button type="button" data-yc-cancel-reply hidden>取消回复</button>
+            <h3 data-yc-form-title>${t(root, "postComment")}</h3>
+            <button type="button" data-yc-cancel-reply hidden>${t(root, "cancelReply")}</button>
           </div>
           <div class="yc-grid">
             <label>
-              <span>昵称</span>
+              <span>${t(root, "nickname")}</span>
               <input name="nickname" type="text" required maxlength="30" />
             </label>
             <label>
-              <span>邮箱</span>
+              <span>${t(root, "email")}</span>
               <input name="email" type="email" maxlength="160" />
             </label>
             <label>
-              <span>网站</span>
+              <span>${t(root, "website")}</span>
               <input name="website" type="url" placeholder="https://example.com" maxlength="240" />
             </label>
           </div>
           <label>
-            <span>评论内容</span>
+            <span>${t(root, "content")}</span>
             <textarea name="content" required rows="5" maxlength="1000"></textarea>
           </label>
           <div class="yc-turnstile" data-yc-turnstile hidden></div>
           <div class="yc-footer">
             <p class="yc-feedback" data-yc-feedback aria-live="polite"></p>
-            <button type="submit" data-yc-submit>提交</button>
+            <button type="submit" data-yc-submit>${t(root, "submit")}</button>
           </div>
         </form>
       </section>
@@ -92,7 +165,7 @@
     root.classList.add("yc-root");
     root.innerHTML = `
       <div class="yc-state">
-        <p>YuuComments 配置缺失：apiBase 或 turnstileSiteKey</p>
+        <p>${t(root, "configMissing")}</p>
       </div>
     `;
   }
@@ -163,7 +236,7 @@
     list.replaceChildren();
     if (count) count.textContent = comments.length ? `${comments.length}` : "";
     if (!comments.length) {
-      renderState(list, "还没有评论。");
+      renderState(list, t(root, "empty"));
       return;
     }
 
@@ -216,7 +289,7 @@
     const author = website ? document.createElement("a") : document.createElement("span");
     const parent = comment.parentId ? commentsById.get(comment.parentId) : null;
     author.className = "yc-author";
-    author.textContent = parent ? `回复 @${parent.nickname}` : comment.nickname;
+    author.textContent = parent ? `${t(root, "reply")} @${parent.nickname}` : comment.nickname;
     if (website && author instanceof HTMLAnchorElement) {
       author.href = website;
       author.target = "_blank";
@@ -235,7 +308,7 @@
     actions.className = "yc-actions";
     const replyButton = document.createElement("button");
     replyButton.type = "button";
-    replyButton.textContent = "回复";
+    replyButton.textContent = t(root, "reply");
     replyButton.addEventListener("click", () => {
       setReplyTarget(root, { id: comment.id, nickname: comment.nickname });
     });
@@ -252,7 +325,7 @@
     if (!list) return;
     const pageKey = resolvePageKey(root);
     const { apiBase } = resolveConfig(root);
-    renderState(list, "正在加载评论...");
+    renderState(list, t(root, "loading"));
 
     try {
       const response = await fetch(
@@ -261,11 +334,11 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.comments)) {
-        throw new Error("评论加载失败");
+        throw new Error(t(root, "loadFailedError"));
       }
       renderComments(root, data.comments);
     } catch {
-      renderState(list, "评论加载失败。");
+      renderState(list, t(root, "loadFailed"));
     }
   }
 
@@ -281,7 +354,7 @@
     if (!turnstileSlot || !feedback || !submitButton) return;
     const { siteKey } = resolveConfig(root);
     if (!siteKey) {
-      feedback.textContent = "缺少 Turnstile site key。";
+      feedback.textContent = t(root, "missingSiteKey");
       submitButton.disabled = true;
       return;
     }
@@ -293,7 +366,7 @@
         sitekey: siteKey,
         callback: (token) => {
           root.__yuuCommentsTurnstileToken = token;
-          if (feedback.textContent === "请先完成人机验证。") {
+          if (feedback.textContent === t(root, "verifyFirst")) {
             feedback.textContent = "";
           }
         },
@@ -302,11 +375,11 @@
         },
         "error-callback": () => {
           root.__yuuCommentsTurnstileToken = "";
-          feedback.textContent = "验证组件加载失败。";
+          feedback.textContent = t(root, "verifyFailed");
         },
       });
     } catch {
-      feedback.textContent = "验证组件加载失败。";
+      feedback.textContent = t(root, "verifyFailed");
       submitButton.disabled = true;
     }
   }
@@ -326,20 +399,20 @@
       const content = String(formData.get("content") ?? "").trim();
 
       if (!nickname || !content) {
-        feedback.textContent = "昵称和评论内容不能为空。";
+        feedback.textContent = t(root, "requiredFields");
         return;
       }
       if (!isHttpWebsite(website)) {
-        feedback.textContent = "网站必须以 http:// 或 https:// 开头。";
+        feedback.textContent = t(root, "invalidWebsite");
         return;
       }
       if (!root.__yuuCommentsTurnstileToken) {
-        feedback.textContent = "请先完成人机验证。";
+        feedback.textContent = t(root, "verifyFirst");
         return;
       }
 
       submitButton.disabled = true;
-      submitButton.textContent = "提交中...";
+      submitButton.textContent = t(root, "submitting");
       try {
         const { apiBase } = resolveConfig(root);
         const response = await fetch(`${apiBase}/api/comments`, {
@@ -360,19 +433,19 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) {
-          feedback.textContent = data.message || "评论提交失败。";
+          feedback.textContent = data.message || t(root, "submitFailed");
           return;
         }
-        feedback.textContent = "评论已提交。";
+        feedback.textContent = t(root, "submitted");
         form.elements.content.value = "";
         setReplyTarget(root, null);
         await loadComments(root);
       } catch {
-        feedback.textContent = "评论提交失败。";
+        feedback.textContent = t(root, "submitFailed");
       } finally {
         resetTurnstile(root);
         submitButton.disabled = false;
-        submitButton.textContent = "提交";
+        submitButton.textContent = t(root, "submit");
       }
     });
   }
@@ -382,8 +455,8 @@
     root.__yuuCommentsReplyTarget = target;
     if (formTitle) {
       formTitle.textContent = target
-        ? `回复 @${target.nickname}`
-        : "发表评论";
+        ? `${t(root, "reply")} @${target.nickname}`
+        : t(root, "postComment");
     }
     if (cancelReplyButton) cancelReplyButton.hidden = !target;
     if (target) form?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -393,6 +466,7 @@
     const root = document.querySelector(ROOT_SELECTOR);
     if (!root || root.dataset.yuuCommentsReady === "true") return;
     root.dataset.yuuCommentsReady = "true";
+    applyPresentation(root);
     const { apiBase, siteKey } = resolveConfig(root);
     if (!apiBase || !siteKey) {
       renderConfigurationError(root);
