@@ -223,11 +223,12 @@ dist/frontend/comments.css
 dist/frontend/yuucomments.config.js
 ```
 
-部署成功后，脚本会生成 Astro 组件。
-After deployment succeeds, the script generates the Astro component.
+部署成功后，脚本会生成普通直嵌和 iframe 两个 Astro 组件。
+After deployment succeeds, the script generates both inline and iframe Astro components.
 
 ```text
 dist/astro/YuuComments.astro
+dist/astro/YuuCommentsIframe.astro
 ```
 
 部署成功后，脚本会生成后台静态文件。
@@ -266,8 +267,8 @@ If `data-page-key` is omitted, the frontend uses the current page path.
 
 ## 8. Use With Astro
 
-把 `dist/astro/YuuComments.astro` 复制到你的 Astro 项目组件目录。
-Copy `dist/astro/YuuComments.astro` into your Astro project's component directory.
+把 `dist/astro/YuuComments.astro` 或 `dist/astro/YuuCommentsIframe.astro` 复制到你的 Astro 项目组件目录。
+Copy `dist/astro/YuuComments.astro` or `dist/astro/YuuCommentsIframe.astro` into your Astro project's component directory.
 
 在文章页面中引入组件。
 Import the component in your post page.
@@ -278,6 +279,17 @@ import YuuComments from "../components/YuuComments.astro";
 ---
 
 <YuuComments pageKey={Astro.url.pathname} />
+```
+
+如果需要 iframe 隔离页面 CSS，可以改用 iframe 组件。
+If you need iframe isolation from page CSS, use the iframe component instead.
+
+```astro
+---
+import YuuCommentsIframe from "../components/YuuCommentsIframe.astro";
+---
+
+<YuuCommentsIframe pageKey={Astro.url.pathname} />
 ```
 
 脚本也会在终端输出 Mizuki / Astro 可用的环境变量。

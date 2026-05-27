@@ -1,0 +1,23 @@
+---
+interface Props {
+  pageKey?: string;
+  theme?: "light" | "dark";
+  lang?: "zh-CN" | "en";
+}
+
+const {
+  pageKey = Astro.url.pathname,
+  theme = "light",
+  lang = "zh-CN",
+} = Astro.props;
+---
+
+<div
+  id="yuucomments-iframe"
+  data-page-key={pageKey}
+  data-src="/comments/embed.html"
+  data-theme={theme}
+  data-lang={lang}
+></div>
+
+<script src="/comments/yuucomments-embed.js" defer></script>

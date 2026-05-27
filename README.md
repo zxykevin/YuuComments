@@ -191,9 +191,9 @@ For the detailed step-by-step guide, read [Quick Start / 快速开始](docs/quic
 
 ## Astro Usage / Astro 用法
 
-After deployment, the script also generates an Astro component at `dist/astro/YuuComments.astro`.
+After deployment, the script also generates Astro components at `dist/astro/YuuComments.astro` and `dist/astro/YuuCommentsIframe.astro`.
 
-部署后，脚本也会生成 `dist/astro/YuuComments.astro` 组件，可复制到 Astro 项目中使用。
+部署后，脚本也会生成 `dist/astro/YuuComments.astro` 和 `dist/astro/YuuCommentsIframe.astro` 组件，可复制到 Astro 项目中使用。
 
 ```astro
 ---
@@ -202,6 +202,10 @@ import YuuComments from "../components/YuuComments.astro";
 
 <YuuComments pageKey={Astro.url.pathname} />
 ```
+
+Use `YuuComments.astro` for inline integration, or `YuuCommentsIframe.astro` when you want iframe CSS isolation.
+
+普通直嵌使用 `YuuComments.astro`；如果需要 iframe CSS 隔离，使用 `YuuCommentsIframe.astro`。
 
 ## Project Structure / 项目结构
 

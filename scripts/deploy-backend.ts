@@ -612,6 +612,7 @@ function newFrontendBundle(workerUrl: string, turnstileSiteKey: string) {
 function newAstroBundle() {
   ensureDirectory(astroDistRoot);
   copyFileSync(path.join(astroSourceRoot, "YuuComments.astro"), path.join(astroDistRoot, "YuuComments.astro"));
+  copyFileSync(path.join(astroSourceRoot, "YuuCommentsIframe.astro"), path.join(astroDistRoot, "YuuCommentsIframe.astro"));
 }
 
 function newAdminBundle(workerUrl: string) {
@@ -908,7 +909,8 @@ async function main() {
   console.log('<script src="/comments/yuucomments-embed.js" defer></script>');
   console.log("");
   console.log("Publish the files in dist/frontend/ to your site's /comments/ directory.");
-  console.log("Copy dist/astro/YuuComments.astro into any Astro project to get a minimal ready-to-use component.");
+  console.log("Copy dist/astro/YuuComments.astro for inline Astro integration.");
+  console.log("Copy dist/astro/YuuCommentsIframe.astro for iframe Astro integration.");
   console.log("Publish the files in dist/admin/ to your site's /admin/ directory.");
   console.log("");
   console.log("Astro / Mizuki environment variables:");
