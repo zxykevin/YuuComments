@@ -31,6 +31,9 @@ Then add the following snippet to the page where comments should appear.
 `embed-resize.js` 会监听 iframe 内评论区高度变化，并自动调整外层 iframe 高度。
 `embed-resize.js` watches height changes inside the iframe and automatically resizes the outer iframe.
 
+v0.1.3 起，iframe 内的评论组件也会显示点赞按钮，并使用相同的匿名点赞 API。
+Starting in v0.1.3, the comment widget inside the iframe also shows like buttons and uses the same anonymous like APIs.
+
 ## 参数说明 / Options
 
 `data-page-key` 是评论数据的页面键，必须长期稳定。
@@ -95,3 +98,11 @@ If the iframe and article page are served from the same site, the article site's
 
 如果你用独立子域名托管评论文件，也需要把这个子域名加入 Turnstile hostnames。
 If you host comment files on a separate subdomain, add that subdomain to the Turnstile hostnames too.
+
+## 点赞功能 / Likes
+
+点赞状态由 Worker 根据当前请求的匿名 `visitor_hash` 计算。
+The like state is calculated by the Worker from the current request's anonymous `visitor_hash`.
+
+如果你从旧版本升级，请先执行 v0.1.3 的 D1 migration，确保 `comment_likes` 表已经存在。
+If you upgrade from an older version, apply the v0.1.3 D1 migration first so the `comment_likes` table exists.

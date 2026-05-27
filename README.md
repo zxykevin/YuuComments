@@ -59,8 +59,10 @@ YuuComments packages a working blog comment system into a standalone open-source
 - Cloudflare Pages frontend demo
 - Normal comments and replies
 - Nested replies
+- Anonymous comment likes
 - Admin moderation dashboard
 - Comment status management: pending / approved / spam / deleted
+- Admin like count display
 - Search comments by nickname, content, or page path
 - Turnstile verification
 - English / Chinese UI
@@ -76,8 +78,10 @@ YuuComments packages a working blog comment system into a standalone open-source
 - 提供 Cloudflare Pages 前端示例
 - 支持普通评论和回复
 - 支持嵌套回复
+- 支持匿名评论点赞
 - 内置评论审核后台
 - 支持评论状态管理：待审核 / 已通过 / 垃圾 / 已删除
+- 后台可查看评论点赞数
 - 支持按昵称、内容或页面路径搜索评论
 - 支持 Turnstile 人机验证
 - 支持英文 / 中文界面
@@ -135,6 +139,16 @@ This command installs dependencies, checks Cloudflare login, creates or reuses D
 
 部署完成后，把 `dist/frontend/` 发布到你网站的 `/comments/` 目录。
 After deployment, publish `dist/frontend/` to your site's `/comments/` directory.
+
+v0.1.3 新增评论点赞功能。新部署用户使用当前 `schema.sql` 或一键部署流程即可，不需要额外手动改 schema。
+v0.1.3 adds comment likes. New deployments using the current `schema.sql` or the one-command deployment flow do not need manual schema edits.
+
+从旧版本升级的用户需要执行新增 D1 migration。
+Users upgrading from an older version need to apply the new D1 migration.
+
+```bash
+pnpm db:migrate:remote
+```
 
 如果要使用内置后台，把 `dist/admin/` 发布到你网站的 `/admin/` 目录。
 If you want to use the built-in dashboard, publish `dist/admin/` to your site's `/admin/` directory.
@@ -200,10 +214,15 @@ import YuuComments from "../components/YuuComments.astro";
 
 ## API Overview / API 概览
 
-- `GET /api/comments?path=/xxx`: fetch approved comments for a page.
+- `GET /api/comments?path=/xxx`: fetch approved comments for a page, including `likeCount` and `liked`.
 - `POST /api/comments`: create a comment or reply.
+- `POST /api/comments/:id/like`: like an approved comment.
+- `DELETE /api/comments/:id/like`: remove the current visitor's like from an approved comment.
 - `GET /api/admin/comments?status=approved`: list comments in the admin dashboard.
 - `PATCH /api/admin/comments/:id/status`: update moderation status.
+
+点赞使用匿名 `visitor_hash` 限制同一访问者对同一条评论只能点赞一次，不需要登录，也不会存储原始 IP 或原始 User-Agent。它不是强身份系统，换设备、换浏览器或换网络可能被视为不同访问者，更适合轻量静态站评论互动。
+Likes use an anonymous `visitor_hash` so one visitor can like a comment once. No login is required, and raw IP addresses or raw User-Agent values are not stored. This is not a strong identity system; changing devices, browsers, or networks may count as a different visitor, which fits lightweight static-site interaction.
 
 ## Local Development / 本地开发
 

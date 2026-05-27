@@ -24,6 +24,9 @@ The Worker API handles comment reads, comment creation, admin listing, and moder
 D1 负责保存评论数据。
 D1 stores the comment data.
 
+v0.1.3 起，D1 也保存匿名评论点赞记录。
+Starting in v0.1.3, D1 also stores anonymous comment like records.
+
 前端评论组件挂载在 `#yuucomments` 或兼容的 `#yuulog-comments` 元素上。
 The frontend widget mounts on `#yuucomments` or the compatible `#yuulog-comments` element.
 
@@ -120,6 +123,9 @@ This command runs the TypeScript check.
 
 这个命令会执行远程 D1 migration。
 This command applies remote D1 migrations.
+
+如果你是新部署用户，当前 migration 会创建评论表和点赞表，不需要手动修改 schema。
+For new deployments, the current migrations create both the comments table and the likes table, so no manual schema edits are needed.
 
 这个命令会部署 Cloudflare Worker。
 This command deploys the Cloudflare Worker.
@@ -308,11 +314,23 @@ You can view comments, search comments, change statuses, and delete comments in 
 前端读取评论时会调用 `GET /api/comments?path=/xxx`。
 The frontend calls `GET /api/comments?path=/xxx` to read comments.
 
+这个接口会为每条评论返回 `likeCount` 和 `liked`。
+This endpoint returns `likeCount` and `liked` for each comment.
+
 前端提交评论时会调用 `POST /api/comments`。
 The frontend calls `POST /api/comments` to create comments.
 
+前端点赞时会调用 `POST /api/comments/:id/like`。
+The frontend calls `POST /api/comments/:id/like` to like a comment.
+
+前端取消点赞时会调用 `DELETE /api/comments/:id/like`。
+The frontend calls `DELETE /api/comments/:id/like` to unlike a comment.
+
 后台读取评论时会调用 `GET /api/admin/comments`。
 The dashboard calls `GET /api/admin/comments` to list comments.
+
+后台列表也会返回并展示 `likeCount`，但不会修改点赞数。
+The dashboard also returns and displays `likeCount`, but it does not modify likes.
 
 后台修改状态时会调用 `PATCH /api/admin/comments/:id/status`。
 The dashboard calls `PATCH /api/admin/comments/:id/status` to update moderation status.
@@ -322,6 +340,12 @@ The dashboard calls `DELETE /api/admin/comments/:id` to delete a comment.
 
 管理接口需要 `Authorization: Bearer <ADMIN_TOKEN>`。
 Admin endpoints require `Authorization: Bearer <ADMIN_TOKEN>`.
+
+点赞接口不需要登录。YuuComments 使用匿名 `visitor_hash` 限制同一访问者对同一条评论只能点赞一次。`visitor_hash` 由请求 IP 和 User-Agent 计算得到，系统不会在点赞表中保存原始 IP 或原始 User-Agent。
+Like endpoints do not require login. YuuComments uses an anonymous `visitor_hash` to limit one like per visitor and comment. The `visitor_hash` is derived from the request IP and User-Agent, and raw IP addresses or raw User-Agent values are not stored in the likes table.
+
+这不是强身份系统。换设备、换浏览器或换网络可能被视为不同访问者。
+This is not a strong identity system. Changing devices, browsers, or networks may be treated as a different visitor.
 
 ## 11. CORS 和域名
 
@@ -390,6 +414,37 @@ Do not treat `pnpm deploy` and `pnpm deploy:backend` as the same command.
 `pnpm deploy:backend` 才会处理依赖、D1、secrets、migration、Worker、前端文件和后台文件。
 `pnpm deploy:backend` handles dependencies, D1, secrets, migrations, the Worker, frontend files, and admin files.
 
+### 从旧版本升级到 v0.1.3
+
+### Upgrade From An Older Version To v0.1.3
+
+v0.1.3 新增评论点赞功能，并新增 `comment_likes` D1 表。
+v0.1.3 adds comment likes and the new `comment_likes` D1 table.
+
+如果你使用一键部署脚本，它会执行远程 migration。
+If you use the one-command deployment script, it applies remote migrations.
+
+```powershell
+pnpm deploy:backend
+```
+
+如果你只想单独执行数据库升级，请运行：
+If you only want to apply the database upgrade, run:
+
+```powershell
+pnpm db:migrate:remote
+```
+
+本地开发数据库使用：
+For the local development database:
+
+```powershell
+pnpm db:migrate:local
+```
+
+如果没有执行这次 migration，评论列表或后台可能会提示点赞数据表不存在。
+If this migration has not been applied, the comment list or dashboard may report that the likes table is missing.
+
 ## 14. 常见问题
 
 ## 14. Troubleshooting
@@ -419,6 +474,9 @@ Check whether the browser console shows a CORS error.
 
 请检查当前页面路径是否和 `data-page-key` 一致。
 Check whether the current page path matches `data-page-key`.
+
+如果升级到 v0.1.3 后评论或后台加载失败，并看到 `comment_likes` 相关错误，请先执行 D1 migration。
+If comments or the dashboard fail to load after upgrading to v0.1.3 and you see a `comment_likes` error, apply the D1 migration first.
 
 ### 评论提交失败
 
