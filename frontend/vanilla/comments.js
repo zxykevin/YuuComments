@@ -17,6 +17,9 @@
       loading: "正在加载评论...",
       loadFailed: "评论加载失败。",
       loadFailedError: "评论加载失败",
+      like: "赞",
+      liked: "已赞",
+      likeFailed: "点赞操作失败。",
       missingSiteKey: "缺少 Turnstile site key。",
       verifyFirst: "请先完成人机验证。",
       verifyFailed: "验证组件加载失败。",
@@ -41,6 +44,9 @@
       loading: "Loading comments...",
       loadFailed: "Failed to load comments.",
       loadFailedError: "Failed to load comments",
+      like: "Like",
+      liked: "Liked",
+      likeFailed: "Failed to update like.",
       missingSiteKey: "Missing Turnstile site key.",
       verifyFirst: "Please complete the verification first.",
       verifyFailed: "Verification widget failed to load.",
@@ -168,6 +174,21 @@
         <p>${t(root, "configMissing")}</p>
       </div>
     `;
+  }
+
+  function normalizeCommentLikeState(comment) {
+    const likeCount = Number(comment.likeCount);
+    comment.likeCount = Number.isFinite(likeCount) && likeCount > 0 ? likeCount : 0;
+    comment.liked = comment.liked === true;
+  }
+
+  function updateLikeButton(root, button, comment) {
+    normalizeCommentLikeState(comment);
+    button.classList.toggle("is-liked", comment.liked);
+    button.setAttribute("aria-pressed", comment.liked ? "true" : "false");
+    button.textContent = comment.liked
+      ? `♥ ${t(root, "liked")} ${comment.likeCount}`
+      : `♡ ${t(root, "like")} ${comment.likeCount}`;
   }
 
   function getElements(root) {
@@ -306,18 +327,53 @@
 
     const actions = document.createElement("div");
     actions.className = "yc-actions";
+    const likeButton = document.createElement("button");
+    likeButton.type = "button";
+    likeButton.className = "yc-like-button";
+    updateLikeButton(root, likeButton, comment);
+    likeButton.addEventListener("click", () => {
+      void toggleCommentLike(root, comment, likeButton);
+    });
     const replyButton = document.createElement("button");
     replyButton.type = "button";
     replyButton.textContent = t(root, "reply");
     replyButton.addEventListener("click", () => {
       setReplyTarget(root, { id: comment.id, nickname: comment.nickname });
     });
-    actions.append(replyButton);
+    actions.append(likeButton, replyButton);
 
     const replies = document.createElement("div");
     replies.className = "yc-replies";
     article.append(meta, content, actions, replies);
     return article;
+  }
+
+  async function toggleCommentLike(root, comment, button) {
+    const { apiBase } = resolveConfig(root);
+    const liked = comment.liked === true;
+    button.disabled = true;
+
+    try {
+      const response = await fetch(
+        `${apiBase}/api/comments/${encodeURIComponent(comment.id)}/like`,
+        {
+          method: liked ? "DELETE" : "POST",
+          headers: { Accept: "application/json" },
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || t(root, "likeFailed"));
+      }
+
+      comment.likeCount = Number(data.likeCount) || 0;
+      comment.liked = data.liked === true;
+      updateLikeButton(root, button, comment);
+    } catch (error) {
+      console.warn(t(root, "likeFailed"), error);
+    } finally {
+      button.disabled = false;
+    }
   }
 
   async function loadComments(root) {

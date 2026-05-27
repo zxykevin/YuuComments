@@ -87,6 +87,17 @@ a.yc-author {
   cursor: pointer;
 }
 
+.yc-actions button:disabled,
+.yc-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.yc-like-button.is-liked {
+  border-color: var(--yc-accent);
+  color: var(--yc-accent);
+}
+
 .yc-form button[type="submit"] {
   border-color: var(--yc-accent);
   background: var(--yc-accent);
