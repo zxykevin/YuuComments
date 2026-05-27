@@ -97,6 +97,7 @@
         <dl>
           <div><dt>创建时间</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
           <div><dt>邮箱</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
+          <div><dt>点赞</dt><dd>${escapeHtml(normalizeLikeCount(comment.likeCount))}</dd></div>
         </dl>
         <footer></footer>
       `;
@@ -216,6 +217,11 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function normalizeLikeCount(value) {
+    const likeCount = Number(value);
+    return Number.isFinite(likeCount) && likeCount > 0 ? likeCount : 0;
   }
 
   tokenInput.value = localStorage.getItem(storageKey) || "";

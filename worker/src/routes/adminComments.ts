@@ -67,30 +67,62 @@ export async function getAdminComments(
   }
 
   const baseQuery = `SELECT
-      id,
-      page_path,
-      parent_id,
-      nickname,
-      email,
-      email_hash,
-      website,
-      content,
-      status,
-      ip,
-      created_at,
-      updated_at
-    FROM comments`;
+      comments.id,
+      comments.page_path,
+      comments.parent_id,
+      comments.nickname,
+      comments.email,
+      comments.email_hash,
+      comments.website,
+      comments.content,
+      comments.status,
+      comments.ip,
+      comments.created_at,
+      comments.updated_at,
+      COUNT(comment_likes.visitor_hash) AS like_count
+    FROM comments
+    LEFT JOIN comment_likes ON comment_likes.comment_id = comments.id`;
   const statement = status
-    ? env.DB.prepare(`${baseQuery} WHERE status = ? ORDER BY created_at DESC`).bind(
-        status,
-      )
-    : env.DB.prepare(`${baseQuery} ORDER BY created_at DESC`);
-  const result = await statement.all<CommentRow>();
+    ? env.DB.prepare(
+        `${baseQuery}
+        WHERE comments.status = ?
+        GROUP BY comments.id
+        ORDER BY comments.created_at DESC`,
+      ).bind(status)
+    : env.DB.prepare(
+        `${baseQuery}
+        GROUP BY comments.id
+        ORDER BY comments.created_at DESC`,
+      );
+  let result: D1Result<CommentRow>;
+  try {
+    result = await statement.all<CommentRow>();
+  } catch (error) {
+    if (isMissingCommentLikesTableError(error)) {
+      return Response.json(
+        {
+          ok: false,
+          message: "点赞数据表不存在，请先执行 D1 migration。",
+        },
+        { status: 500 },
+      );
+    }
+
+    throw error;
+  }
 
   return Response.json({
     ok: true,
     comments: (result.results ?? []).map(toCommentResponse),
   });
+}
+
+function isMissingCommentLikesTableError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /comment_likes/i.test(error.message) &&
+    /no such table|not found|does not exist/i.test(error.message)
+  );
 }
 
 export async function updateAdminCommentStatus(
