@@ -6,6 +6,7 @@ import {
 } from "./routes/adminComments";
 import { createComment } from "./routes/createComment";
 import { getComments } from "./routes/getComments";
+import { likeComment, unlikeComment } from "./routes/commentLikes";
 import { getCorsHeaders, handleOptions } from "./utils/cors";
 import { ValidationError } from "./utils/validate";
 
@@ -53,6 +54,30 @@ export default {
       if (url.pathname === "/api/admin/comments") {
         if (request.method === "GET") {
           const response = await getAdminComments(request, env);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      const commentLikeMatch = url.pathname.match(
+        /^\/api\/comments\/([^/]+)\/like$/,
+      );
+      if (commentLikeMatch) {
+        if (request.method === "POST") {
+          const response = await likeComment(request, env, commentLikeMatch[1]);
+          return withCors(request, response);
+        }
+
+        if (request.method === "DELETE") {
+          const response = await unlikeComment(request, env, commentLikeMatch[1]);
           return withCors(request, response);
         }
 

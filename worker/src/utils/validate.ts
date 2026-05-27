@@ -12,6 +12,16 @@ export function validatePagePath(value: string | null | undefined): string {
   return value;
 }
 
+export function validateCommentId(value: string | null | undefined): string {
+  const id = value?.trim() ?? "";
+
+  if (!id) {
+    throw new ValidationError("commentId 必须存在");
+  }
+
+  return id;
+}
+
 function normalizeOptionalString(value: unknown): string | null {
   if (value == null) {
     return null;

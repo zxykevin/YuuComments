@@ -17,6 +17,8 @@ export interface CommentRow {
   ip: string | null;
   created_at: string;
   updated_at: string;
+  like_count?: number;
+  liked?: number;
 }
 
 export interface CommentResponse {
@@ -30,6 +32,8 @@ export interface CommentResponse {
   status: string;
   createdAt: string;
   updatedAt: string;
+  likeCount: number;
+  liked: boolean;
 }
 
 export interface AdminCommentResponse extends CommentResponse {

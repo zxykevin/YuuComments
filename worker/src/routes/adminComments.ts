@@ -32,6 +32,8 @@ function toCommentResponse(row: CommentRow): AdminCommentResponse {
     ip: row.ip,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    likeCount: row.like_count ?? 0,
+    liked: row.liked === 1,
   };
 }
 
