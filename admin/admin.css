@@ -156,6 +156,111 @@ button.is-danger {
   overflow-wrap: anywhere;
 }
 
+.ya-markdown {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ya-markdown > :first-child {
+  margin-top: 0;
+}
+
+.ya-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.ya-markdown p,
+.ya-markdown ul,
+.ya-markdown ol,
+.ya-markdown blockquote,
+.ya-markdown pre,
+.ya-markdown table {
+  margin: 0 0 0.75rem;
+}
+
+.ya-markdown ul,
+.ya-markdown ol {
+  padding-left: 1.4rem;
+}
+
+.ya-markdown li + li {
+  margin-top: 0.25rem;
+}
+
+.ya-markdown blockquote {
+  border-left: 3px solid var(--ya-border);
+  color: var(--ya-muted);
+  padding-left: 0.8rem;
+}
+
+.ya-markdown a {
+  color: var(--ya-accent);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ya-markdown code,
+.ya-markdown pre {
+  border: 1px solid var(--ya-border);
+  background: var(--ya-surface);
+}
+
+.ya-markdown code {
+  border-radius: 5px;
+  padding: 0.12rem 0.28rem;
+  font-family:
+    ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.92em;
+}
+
+.ya-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  padding: 0.85rem;
+  white-space: pre;
+}
+
+.ya-markdown pre code {
+  display: block;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.ya-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.ya-markdown th,
+.ya-markdown td {
+  border: 1px solid var(--ya-border);
+  padding: 0.45rem 0.6rem;
+  vertical-align: top;
+}
+
+.ya-markdown th {
+  background: var(--ya-surface);
+  font-weight: 700;
+}
+
+.ya-markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.ya-markdown .katex {
+  max-width: 100%;
+}
+
 .ya-report-card h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;

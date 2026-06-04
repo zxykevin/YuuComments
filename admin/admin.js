@@ -1,4 +1,13 @@
 (() => {
+  const COMMENT_RENDER_ASSETS = {
+    assetBase: "https://cdn.jsdelivr.net/npm",
+    marked: "/marked@12.0.2/marked.min.js",
+    dompurify: "/dompurify@3.1.6/dist/purify.min.js",
+    katexCss: "/katex@0.16.10/dist/katex.min.css",
+    katex: "/katex@0.16.10/dist/katex.min.js",
+    katexAutoRender: "/katex@0.16.10/dist/contrib/auto-render.min.js",
+  };
+  const COMMENT_LINK_REL = "nofollow noopener noreferrer";
   const statuses = ["pending", "approved", "spam", "deleted"];
   const statusLabels = {
     pending: "待审核",
@@ -48,6 +57,192 @@
 
   function showMessage(message) {
     feedback.textContent = message;
+  }
+
+  function readBoolean(value, fallback) {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return fallback;
+  }
+
+  function resolveCommentRenderConfig() {
+    const globalConfig = window.YuuCommentsAdminConfig || window.YuuCommentsConfig || {};
+    const assetBase =
+      globalConfig.commentRenderAssetBase ||
+      globalConfig.assetBase ||
+      COMMENT_RENDER_ASSETS.assetBase;
+    const assets = globalConfig.commentRenderAssets || {};
+    const assetUrl = (key) => {
+      const value = assets[key] || COMMENT_RENDER_ASSETS[key];
+      return /^https?:\/\//i.test(value) ? value : `${assetBase}${value}`;
+    };
+
+    return {
+      markdown: readBoolean(document.body.dataset.markdown, globalConfig.markdown !== false),
+      math: readBoolean(document.body.dataset.math, globalConfig.math !== false),
+      assets: {
+        marked: assetUrl("marked"),
+        dompurify: assetUrl("dompurify"),
+        katexCss: assetUrl("katexCss"),
+        katex: assetUrl("katex"),
+        katexAutoRender: assetUrl("katexAutoRender"),
+      },
+    };
+  }
+
+  function loadScriptOnce(id, src, isReady) {
+    if (isReady()) return Promise.resolve();
+    const existingScript = document.querySelector(`script[data-yuucomments-lib="${id}"]`);
+    const script = existingScript ?? document.createElement("script");
+
+    if (!window.__yuuCommentsScriptLoaders) window.__yuuCommentsScriptLoaders = {};
+    if (window.__yuuCommentsScriptLoaders[id]) {
+      return window.__yuuCommentsScriptLoaders[id];
+    }
+
+    window.__yuuCommentsScriptLoaders[id] = new Promise((resolve, reject) => {
+      script.addEventListener(
+        "load",
+        () => (isReady() ? resolve() : reject(new Error(`${id} unavailable`))),
+        { once: true },
+      );
+      script.addEventListener(
+        "error",
+        () => reject(new Error(`${id} failed to load`)),
+        { once: true },
+      );
+
+      if (!existingScript) {
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.dataset.yuucommentsLib = id;
+        document.head.append(script);
+      }
+    });
+
+    return window.__yuuCommentsScriptLoaders[id];
+  }
+
+  function loadStyleOnce(id, href) {
+    if (document.querySelector(`link[data-yuucomments-lib="${id}"]`)) {
+      return;
+    }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.yuucommentsLib = id;
+    document.head.append(link);
+  }
+
+  async function prepareCommentRendering() {
+    const config = resolveCommentRenderConfig();
+    if (!config.markdown && !config.math) return;
+
+    try {
+      const loaders = [];
+      if (config.markdown) {
+        loaders.push(
+          loadScriptOnce("marked", config.assets.marked, () => Boolean(window.marked)),
+          loadScriptOnce("dompurify", config.assets.dompurify, () =>
+            Boolean(window.DOMPurify),
+          ),
+        );
+      }
+      if (config.math) {
+        loadStyleOnce("katex-css", config.assets.katexCss);
+        loaders.push(
+          loadScriptOnce("katex", config.assets.katex, () => Boolean(window.katex)).then(
+            () =>
+              loadScriptOnce("katex-auto-render", config.assets.katexAutoRender, () =>
+                Boolean(window.renderMathInElement),
+              ),
+          ),
+        );
+      }
+      await Promise.all(loaders);
+    } catch (error) {
+      console.warn("YuuComments admin renderer dependencies failed to load.", error);
+    }
+  }
+
+  function escapeUserHtml(value) {
+    return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;");
+  }
+
+  function sanitizeContentHtml(html) {
+    return window.DOMPurify.sanitize(html, {
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+      FORBID_TAGS: ["style", "script", "iframe", "object", "embed", "form", "input"],
+      FORBID_ATTR: ["style", "onerror", "onload", "onclick"],
+    });
+  }
+
+  function hardenContentLinks(container) {
+    for (const link of container.querySelectorAll("a[href]")) {
+      let url;
+      try {
+        url = new URL(link.getAttribute("href"), window.location.href);
+      } catch {
+        link.removeAttribute("href");
+        continue;
+      }
+      if (!["http:", "https:", "mailto:"].includes(url.protocol)) {
+        link.removeAttribute("href");
+        continue;
+      }
+      link.target = "_blank";
+      link.rel = COMMENT_LINK_REL;
+    }
+  }
+
+  function renderContentMath(container) {
+    if (!window.renderMathInElement) return;
+    window.renderMathInElement(container, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\[", right: "\\]", display: true },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "$", right: "$", display: false },
+      ],
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      throwOnError: false,
+    });
+  }
+
+  function renderAdminContent(container, content) {
+    const config = resolveCommentRenderConfig();
+    container.classList.add("ya-content");
+
+    if (!config.markdown && !config.math) {
+      container.textContent = content;
+      return;
+    }
+
+    if (config.markdown && window.marked && window.DOMPurify) {
+      container.classList.add("ya-markdown");
+      try {
+        const html = window.marked.parse(escapeUserHtml(content), {
+          gfm: true,
+          breaks: true,
+          headerIds: false,
+          mangle: false,
+        });
+        container.innerHTML = sanitizeContentHtml(html);
+        hardenContentLinks(container);
+        if (config.math) renderContentMath(container);
+      } catch (error) {
+        console.warn("YuuComments admin failed to render content.", error);
+        container.textContent = content;
+      }
+      return;
+    }
+
+    container.textContent = content;
+    if (config.math && window.renderMathInElement) {
+      container.classList.add("ya-markdown");
+      renderContentMath(container);
+    }
   }
 
   function renderViewTabs() {
@@ -183,7 +378,7 @@
           </div>
           <span class="status status-${comment.status}">${statusLabels[comment.status]}</span>
         </header>
-        <p class="ya-content">${escapeHtml(comment.content)}</p>
+        <div class="ya-content" data-comment-content></div>
         <dl>
           <div><dt>创建时间</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
           <div><dt>邮箱</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
@@ -191,6 +386,7 @@
         </dl>
         <footer></footer>
       `;
+      renderAdminContent(article.querySelector("[data-comment-content]"), comment.content);
       const footer = article.querySelector("footer");
       statuses
         .filter((status) => status !== "deleted")
@@ -243,14 +439,14 @@
         </dl>
         ${
           report.message
-            ? `<p class="ya-content">${escapeHtml(report.message)}</p>`
+            ? `<div class="ya-content" data-report-message></div>`
             : ""
         }
         ${
           comment
             ? `<section class="ya-report-comment">
                 <h3>Reported comment / 被举报评论</h3>
-                <p class="ya-content">${escapeHtml(comment.content || "")}</p>
+                <div class="ya-content" data-reported-comment-content></div>
                 <dl>
                   <div><dt>Author / 作者</dt><dd>${escapeHtml(comment.nickname || "")}</dd></div>
                   <div><dt>Page / 页面</dt><dd>${escapeHtml(comment.pagePath || "")}</dd></div>
@@ -261,6 +457,10 @@
         }
         <footer></footer>
       `;
+      const reportMessage = article.querySelector("[data-report-message]");
+      if (reportMessage) renderAdminContent(reportMessage, report.message);
+      const reportedContent = article.querySelector("[data-reported-comment-content]");
+      if (reportedContent) renderAdminContent(reportedContent, comment.content || "");
       const footer = article.querySelector("footer");
       const resolveButton = document.createElement("button");
       resolveButton.type = "button";
@@ -315,6 +515,7 @@
         throw new Error(data.message || "评论加载失败。");
       }
       comments = data.comments;
+      await prepareCommentRendering();
       showMessage("");
       renderFilters();
       renderComments();
@@ -347,6 +548,7 @@
         throw new Error(data.message || "Reports failed to load. / 举报加载失败。");
       }
       reports = data.reports;
+      await prepareCommentRendering();
       showMessage("");
       renderFilters();
       renderReports();
