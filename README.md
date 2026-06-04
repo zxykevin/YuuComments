@@ -1,181 +1,156 @@
 # YuuComments
 
-YuuComments is a lightweight comment system for static websites, built on Cloudflare Workers, D1, Pages, and Turnstile.
+Cloudflare-native、edge-ready 的静态博客评论系统。  
+A Cloudflare-native, edge-ready comment system for static blogs.
 
-YuuComments 是一个面向静态网站的轻量评论系统，基于 Cloudflare Workers、D1、Pages 和 Turnstile 构建。
+No server. No MongoDB. No LeanCloud. No forced GitHub login.
 
-- Demo site / 示例站点: [https://yuucomments-cf-pages-demo.pages.dev/](https://yuucomments-cf-pages-demo.pages.dev/)
-- Admin demo / 后台示例: [https://yuucomments-cf-pages-demo.pages.dev/admin/](https://yuucomments-cf-pages-demo.pages.dev/admin/)
+一条命令部署后端，复制几行代码即可接入 Astro / Hexo / Hugo / VuePress / 普通 HTML。  
+Deploy the backend with one command, then embed comments into Astro, Hexo, Hugo, VuePress, or plain HTML in minutes.
+
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)
+![Cloudflare D1](https://img.shields.io/badge/Database-D1-2563eb)
+![Static Site](https://img.shields.io/badge/Static--site-friendly-0ea5e9)
+![Turnstile](https://img.shields.io/badge/Bot--protection-Turnstile-16a34a)
+
+[Live Demo](https://yuucomments-cf-pages-demo.pages.dev/) | [Admin Demo](https://yuucomments-cf-pages-demo.pages.dev/admin/) | [Quick Start](docs/quick-start.md) | [Docs](#documentation--文档) | [中文说明](docs/quick-start.md)
+
+![YuuComments hero](docs/images/hero.png)
+
+> Demo admin token: `admin12345`
+>
+> 示例后台 Token 仅用于公开预览。正式部署时不要公开自己的 `ADMIN_TOKEN`。  
+> The demo token is public for preview only. Never expose your production `ADMIN_TOKEN`.
+
+## What is YuuComments? / YuuComments 是什么？
+
+YuuComments 给静态博客添加一个轻量评论区，不需要自建服务器，也不需要 MongoDB、LeanCloud 或 GitHub Issues。
+
+YuuComments adds a lightweight comment area to static blogs without asking you to run a server or connect an external comment database.
+
+它使用 Cloudflare Workers 提供 API，Cloudflare D1 存储评论数据，并用 Turnstile 做人机验证。
+
+It uses Cloudflare Workers for the API, Cloudflare D1 for comment storage, and Turnstile for bot protection.
+
+部署完成后，你只需要发布生成的静态资源，再在页面里插入评论组件或 iframe。
+
+After deployment, publish the generated static assets and embed the widget or iframe into your site.
+
+## Highlights / 亮点
+
+- Cloudflare-native: Workers API, D1 database, Turnstile verification, and Pages-friendly static assets.
+- Cloudflare 原生：Workers API、D1 数据库、Turnstile 验证，以及适合 Pages/静态站的前端资源。
+- No MongoDB, LeanCloud, self-hosted Node service, or forced GitHub login.
+- 不依赖 MongoDB / LeanCloud / 自建 Node 服务，也不强制访客 GitHub 登录。
+- One-command backend deployment with D1 setup, migrations, secrets, Worker deploy, and asset generation.
+- 一条命令完成 D1、migration、secrets、Worker 部署和静态资源生成。
+- Inline widget and iframe embed mode for different blog themes.
+- 支持普通直嵌和 iframe 隔离模式，适配不同博客主题。
+- Built-in admin dashboard for moderation, search, reports, spam, deletion, and approval.
+- 内置后台，可审核、搜索、处理举报、标记垃圾评论、删除或通过评论。
+- Anonymous likes, nested replies, reports, Markdown comments, LaTeX math, themes, and English/Chinese UI.
+- 支持匿名点赞、嵌套回复、举报、Markdown 评论、LaTeX 公式、主题和中英文界面。
+
+## Demo / 演示
+
+- Live demo / 前台演示: [yuucomments-cf-pages-demo.pages.dev](https://yuucomments-cf-pages-demo.pages.dev/)
+- Admin demo / 后台演示: [yuucomments-cf-pages-demo.pages.dev/admin/](https://yuucomments-cf-pages-demo.pages.dev/admin/)
 - Demo admin token / 示例后台 Token: `admin12345`
 
-> The demo admin token is public only for preview. Do not use a public token in production.
->
-> 示例后台 Token 仅用于公开参观。正式部署时请不要公开自己的 `ADMIN_TOKEN`。
+## Edge-Native Architecture / 边缘原生架构
 
-## 为什么做 YuuComments？
+```mermaid
+flowchart LR
+  Visitor[Visitor Browser<br/>访客浏览器] --> Blog[Static Blog Page<br/>静态博客页面]
+  Blog --> Widget[YuuComments Widget / iframe<br/>评论组件 / iframe]
 
-YuuComments 最初是从我的个人博客中抽离出来的评论系统。
+  Widget --> Worker[Cloudflare Workers API]
+  Admin[Site Admin<br/>站点管理员] --> Dashboard[Admin Dashboard<br/>管理后台]
+  Dashboard --> Worker
 
-在给静态博客添加评论区时，我发现中文互联网上很多教程仍然停留在比较旧的方案，例如 LeanCloud、MongoDB、Vercel、GitHub Issues 等。它们并不是不能用，但对普通静态博客用户来说，配置链路往往比较长，也容易遇到平台、数据库、环境变量和部署问题。
+  Worker --> Comments[Comment APIs<br/>评论接口]
+  Worker --> Likes[Like APIs<br/>点赞接口]
+  Worker --> Reports[Reports / Moderation<br/>举报与审核]
+  Worker --> Turnstile[Cloudflare Turnstile<br/>人机验证]
+  Worker <--> D1[(Cloudflare D1<br/>评论数据库)]
+```
 
-所以我把自己博客里已经跑通的评论系统抽离出来，重新整理成一个独立开源项目。
+评论组件和后台都是静态资源；真正的写入、审核、点赞、举报和 Turnstile 校验都由 Worker 处理，数据存储在 D1。
 
-YuuComments 的目标是：
+The widget and admin dashboard are static assets. The Worker handles writes, moderation, likes, reports, and Turnstile verification, while D1 stores the comment data.
 
-- 尽量使用 Cloudflare 免费生态
-- 不需要自建服务器
-- 不依赖 MongoDB / LeanCloud
-- 不强制 GitHub 登录
-- 支持普通静态网站
-- 提供评论审核后台
-- 尽量降低部署门槛
+## Features / 功能
 
-## Why YuuComments?
+- Normal comments and nested replies / 普通评论与嵌套回复
+- Markdown comments with GFM-style formatting / 支持 GFM 风格 Markdown 评论
+- LaTeX math rendering with KaTeX / 使用 KaTeX 渲染 LaTeX 公式
+- Anonymous comment likes / 匿名点赞
+- Comment report system / 评论举报
+- Admin report management / 后台举报管理
+- Admin preview of Markdown comments and LaTeX math / 后台预览 Markdown 评论和 LaTeX 公式
+- Pending / approved / spam / deleted moderation states / 待审核、已通过、垃圾、已删除状态
+- Automatic return to pending review after repeated reports / 多次举报后自动转回待审核
+- Admin dashboard for comments, reports, status changes, and search / 后台管理评论、举报、状态和搜索
+- Search by nickname, content, email, or page path / 按昵称、内容、邮箱或页面路径搜索
+- Turnstile verification / Turnstile 人机验证
+- Light and dark themes / 浅色与深色主题
+- English and Chinese UI / 英文与中文界面
+- Inline widget and iframe embed modes / 普通直嵌与 iframe 嵌入
+- Astro component generation / 自动生成 Astro 组件
+- Examples for Astro Mizuki, Hexo, Hugo, and plain HTML / Astro Mizuki、Hexo、Hugo、普通 HTML 示例
 
-YuuComments started as the comment system from my personal blog.
+## Screenshots / 截图
 
-When adding comments to a static blog, I found that many Chinese tutorials still focus on older stacks such as LeanCloud, MongoDB, Vercel, or GitHub Issues. They can work, but for ordinary static blog users the setup chain is often long, and it is easy to run into platform, database, environment variable, and deployment problems.
-
-YuuComments packages a working blog comment system into a standalone open-source project. Its goal is to stay close to Cloudflare's free ecosystem, avoid self-hosted servers, avoid MongoDB and LeanCloud, avoid forced GitHub login, support ordinary static sites, provide a moderation dashboard, and make deployment easier.
-
-## Screenshots / 示例图片
-
-### Comment form / 发表评论
+### Comment Form / 评论表单
 
 ![YuuComments comment form](docs/images/comment-form.png)
 
-### Comment list and nested replies / 评论列表与嵌套回复
+### Comment List / 评论列表
 
 ![YuuComments comment list](docs/images/comment-list.png)
 
-### Admin dashboard / 评论管理后台
+### Admin Dashboard / 管理后台
 
 ![YuuComments admin dashboard](docs/images/admin-dashboard.png)
 
-## Features
-
-- Lightweight comment system for static websites
-- Cloudflare Workers + D1 backend
-- Cloudflare Pages frontend demo
-- Normal comments and replies
-- Nested replies
-- Markdown comments with GFM-style formatting
-- LaTeX math rendering with KaTeX
-- Anonymous comment likes
-- Comment reporting
-- Admin moderation dashboard
-- Admin report management
-- Admin preview of Markdown comments and LaTeX math
-- Comment status management: pending / approved / spam / deleted
-- Automatic pending review after 5 reports
-- Admin like count display
-- Search comments by nickname, content, or page path
-- Turnstile verification
-- English / Chinese UI
-- Light / dark theme support
-- Works with Astro, Hexo, Hugo, VuePress and plain HTML
-- No server required
-- No GitHub login required
-
-中文功能补充：
-
-- 评论举报
-- 后台举报管理
-- 评论收到 5 次举报后自动转回待审核
-
-## 功能
-
-- 适合静态网站的轻量评论系统
-- 使用 Cloudflare Workers + D1 作为后端
-- 提供 Cloudflare Pages 前端示例
-- 支持普通评论和回复
-- 支持嵌套回复
-- 支持匿名评论点赞
-- 内置评论审核后台
-- 支持评论状态管理：待审核 / 已通过 / 垃圾 / 已删除
-- 后台可查看评论点赞数
-- 支持按昵称、内容或页面路径搜索评论
-- 支持 Turnstile 人机验证
-- 支持英文 / 中文界面
-- 支持浅色 / 深色主题
-- 可用于 Astro、Hexo、Hugo、VuePress 和普通 HTML
-- 不需要自建服务器
-- 不强制 GitHub 登录
-
-## Admin Dashboard
-
-YuuComments includes a built-in admin dashboard.
-
-You can:
-
-- review pending comments
-- approve comments
-- mark comments as spam
-- delete comments
-- search comments
-- view email addresses in the admin panel
-- view comment reports
-- resolve or ignore reports
-- delete reported comments
-
-## 管理后台
-
-YuuComments 内置评论管理后台。
-
-你可以：
-
-- 查看待审核评论
-- 通过评论
-- 标记垃圾评论
-- 删除评论
-- 搜索评论
-- 在后台查看评论者邮箱
-
-## Advantages / 优点
-
-- **Low deployment cost / 部署成本低**: built around Cloudflare's free-friendly stack, with Workers, D1, Pages, and Turnstile.
-- **Static-site friendly / 适合静态站点**: add comments by publishing a few frontend files and inserting a small HTML snippet.
-- **No extra database service / 不需要额外数据库服务**: comment data is stored in Cloudflare D1.
-- **No forced account login / 不强制登录账号**: visitors can comment without GitHub login.
-- **Moderation first / 默认考虑审核**: comments can stay pending until approved, and the admin dashboard can manage spam and deletion.
-- **Portable frontend / 前端接入简单**: works with common static site generators and plain HTML.
-
 ## Quick Start / 快速开始
-
-YuuComments 现在推荐使用一键部署脚本启动完整后端流程。
-YuuComments now recommends the one-command deployment script for the full backend flow.
 
 ```bash
 pnpm deploy:backend
 ```
 
-这个命令会自动安装依赖、检查 Cloudflare 登录、创建或复用 D1、处理 Turnstile、上传 secrets、执行远程 migration、部署 Worker，并生成前端与后台静态文件。
-This command installs dependencies, checks Cloudflare login, creates or reuses D1, handles Turnstile, uploads secrets, applies remote migrations, deploys the Worker, and generates frontend and admin static files.
+This command will / 这个命令会：
 
-部署完成后，把 `dist/frontend/` 发布到你网站的 `/comments/` 目录。
-After deployment, publish `dist/frontend/` to your site's `/comments/` directory.
+- install dependencies / 安装依赖
+- check Cloudflare login / 检查 Cloudflare 登录
+- create or reuse D1 / 创建或复用 D1
+- configure Turnstile / 配置 Turnstile
+- upload Worker secrets / 上传 Worker secrets
+- apply remote migrations / 执行远程 migration
+- deploy the Worker / 部署 Worker
+- generate frontend and admin static assets / 生成前台和后台静态资源
 
-v0.1.3 新增评论点赞功能。新部署用户使用当前 `schema.sql` 或一键部署流程即可，不需要额外手动改 schema。
-v0.1.3 adds comment likes. New deployments using the current `schema.sql` or the one-command deployment flow do not need manual schema edits.
+Then publish / 然后发布：
 
-v0.1.4 adds comment reporting and admin report management. Reporters must provide an email address, and existing deployments need to apply the new D1 migration before using reports.
+- `dist/frontend/` to `/comments/`
+- `dist/admin/` to `/admin/`
 
-v0.1.4 also adds frontend-only Markdown comments and LaTeX math rendering. Comment content is still stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
+v0.1.4 adds frontend-only Markdown comments and LaTeX math rendering. Comment content is still stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
 
-v0.1.4 新增评论举报和后台举报管理。举报者必须填写邮箱，旧版本升级用户需要先执行新的 D1 migration。
+v0.1.4 新增前端 Markdown 评论和 LaTeX 公式渲染。评论内容仍以原始 Markdown 文本存储；Markdown 和公式渲染不需要额外后端 migration。
 
-从旧版本升级的用户需要执行新增 D1 migration。
-Users upgrading from an older version need to apply the new D1 migration.
+Full guide / 完整教程: [docs/quick-start.md](docs/quick-start.md)
 
-```bash
-pnpm db:migrate:remote
-```
+## Framework Examples / 框架示例
 
-如果要使用内置后台，把 `dist/admin/` 发布到你网站的 `/admin/` 目录。
-If you want to use the built-in dashboard, publish `dist/admin/` to your site's `/admin/` directory.
+- Astro: generated components in `dist/astro/YuuComments.astro` and `dist/astro/YuuCommentsIframe.astro`
+- Astro Mizuki: [examples/astro-mizuki](examples/astro-mizuki/README.md)
+- Hexo: [examples/hexo](examples/hexo/README.md)
+- Hugo: [examples/hugo](examples/hugo/README.md)
+- Plain HTML: [examples/plain-html](examples/plain-html/README.md)
+- iframe embed / iframe 嵌入: [docs/embed.md](docs/embed.md)
 
-然后在需要评论区的页面插入这段代码。
-Then add this snippet to the page where comments should appear.
+Minimal inline embed / 最小直嵌代码：
 
 ```html
 <div
@@ -191,27 +166,9 @@ Then add this snippet to the page where comments should appear.
 
 `data-markdown` and `data-math` are enabled by default. Set either value to `"false"` to disable Markdown or formula rendering for that widget. You can also set `window.YuuCommentsConfig.markdown` and `window.YuuCommentsConfig.math`; HTML data attributes take priority.
 
-Markdown and math comment example:
+`data-markdown` 和 `data-math` 默认启用。可以把其中任意值设为 `"false"` 来关闭当前组件的 Markdown 或公式渲染。也可以设置 `window.YuuCommentsConfig.markdown` 和 `window.YuuCommentsConfig.math`；HTML data 属性优先级更高。
 
-~~~markdown
-**Bold** and ~~deleted~~ text with `inline code`.
-
-> A quoted paragraph.
-
-```js
-console.log("YuuComments");
-```
-
-Inline math: $E = mc^2$
-
-$$F = ma$$
-~~~
-
-如果你希望评论区和页面 CSS 隔离，可以使用 iframe 嵌入方式。
-If you want to isolate the comment widget from page CSS, you can use iframe embed mode.
-
-iframe 嵌入只需要页面加载 `yuucomments-embed.js`，评论资源仍然建议部署在 `/comments/` 目录。
-Iframe embed only needs the page to load `yuucomments-embed.js`, while the comment assets should still be deployed under `/comments/`.
+Minimal iframe embed / 最小 iframe 嵌入代码：
 
 ```html
 <div
@@ -226,93 +183,69 @@ Iframe embed only needs the page to load `yuucomments-embed.js`, while the comme
 <script src="/comments/yuucomments-embed.js" defer></script>
 ```
 
-`data-theme` 支持 `light` 和 `dark`，`data-lang` 支持 `zh-CN` 和 `en`。
-`data-theme` supports `light` and `dark`, and `data-lang` supports `zh-CN` and `en`.
+## Why YuuComments? / 为什么选择 YuuComments？
 
-更多 iframe 用法请阅读 [iframe 嵌入 / Iframe Embed](docs/embed.md)。
-For more iframe usage details, read [iframe 嵌入 / Iframe Embed](docs/embed.md).
+| | YuuComments | Giscus | Twikoo / Waline |
+|---|---|---|---|
+| Backend / 后端 | Cloudflare Workers | GitHub Discussions | Node.js / serverless |
+| Database / 数据库 | Cloudflare D1 | GitHub Discussions | External DB / 外部数据库 |
+| Requires GitHub login / 强制 GitHub 登录 | No / 否 | Yes / 是 | No / 否 |
+| Self-owned comment data / 自有评论数据 | Yes / 是 | Partly / 部分 | Yes / 是 |
+| Built-in moderation dashboard / 内置审核后台 | Yes / 是 | GitHub UI | Yes / 是 |
+| Static-site friendly / 适合静态站 | Yes / 是 | Yes / 是 | Yes / 是 |
+| Cloudflare-native / Cloudflare 原生 | Yes / 是 | Partly / 部分 | Depends / 取决于部署 |
+| iframe embed / iframe 嵌入 | Yes / 是 | Yes / 是 | Depends / 取决于方案 |
 
-详细分步教程请阅读 [Quick Start / 快速开始](docs/quick-start.md)。
-For the detailed step-by-step guide, read [Quick Start / 快速开始](docs/quick-start.md).
+YuuComments 更适合想把评论数据放在自己 Cloudflare 账户里、又不想维护服务器或外部数据库的静态博客。
 
-## Astro Usage / Astro 用法
+YuuComments is designed for static blog owners who want self-owned comment data inside their Cloudflare account without maintaining a server or separate database service.
 
-After deployment, the script also generates Astro components at `dist/astro/YuuComments.astro` and `dist/astro/YuuCommentsIframe.astro`.
+## Roadmap / 路线图
 
-部署后，脚本也会生成 `dist/astro/YuuComments.astro` 和 `dist/astro/YuuCommentsIframe.astro` 组件，可复制到 Astro 项目中使用。
+YuuComments is still in early development. The current focus is reliability, moderation workflow and easier deployment.
 
-```astro
----
-import YuuComments from "../components/YuuComments.astro";
----
+YuuComments 仍处于早期开发阶段。当前重点是可靠性、审核流程和更容易的部署体验。
 
-<YuuComments pageKey={Astro.url.pathname} />
-```
+### Done
 
-Use `YuuComments.astro` for inline integration, or `YuuCommentsIframe.astro` when you want iframe CSS isolation.
+- [x] Cloudflare Workers + D1 backend
+- [x] Static comment widget
+- [x] Admin moderation dashboard
+- [x] iframe embed mode
+- [x] Anonymous likes
+- [x] Comment report system
+- [x] Markdown comments and LaTeX math rendering
 
-普通直嵌使用 `YuuComments.astro`；如果需要 iframe CSS 隔离，使用 `YuuCommentsIframe.astro`。
+### Planned before v1.0
 
-## Project Structure / 项目结构
-
-- `worker/`: Cloudflare Worker source code, D1 schema, migrations, and Worker config.
-- `frontend/`: vanilla frontend comment widget and Astro component source.
-- `admin/`: static admin dashboard files.
-- `examples/`: integration examples for common static site setups.
-- `docs/`: deployment, security, Turnstile, and Cloudflare API token docs.
-- `dist/`: generated frontend and Astro assets after deployment/build steps.
-
-## API Overview / API 概览
-
-- `GET /api/comments?path=/xxx`: fetch approved comments for a page, including `likeCount` and `liked`.
-- `POST /api/comments`: create a comment or reply.
-- `POST /api/comments/:id/like`: like an approved comment.
-- `DELETE /api/comments/:id/like`: remove the current visitor's like from an approved comment.
-- `POST /api/comments/:id/report`: report a comment with reporter email, reason, and optional message.
-- `GET /api/admin/comments?status=approved`: list comments in the admin dashboard.
-- `PATCH /api/admin/comments/:id/status`: update moderation status.
-- `GET /api/admin/reports?status=open`: list comment reports in the admin dashboard.
-- `PATCH /api/admin/reports/:id/status`: mark a report as open, resolved, or ignored.
-
-点赞使用匿名 `visitor_hash` 限制同一访问者对同一条评论只能点赞一次，不需要登录，也不会存储原始 IP 或原始 User-Agent。它不是强身份系统，换设备、换浏览器或换网络可能被视为不同访问者，更适合轻量静态站评论互动。
-Likes use an anonymous `visitor_hash` so one visitor can like a comment once. No login is required, and raw IP addresses or raw User-Agent values are not stored. This is not a strong identity system; changing devices, browsers, or networks may count as a different visitor, which fits lightweight static-site interaction.
-
-Reports require the reporter to enter an email address. The reporter email is stored in plain text in D1 and is visible to site admins in the admin dashboard. Reports do not store raw IP addresses or raw User-Agent values; an anonymous `reporter_hash` is used only to prevent the same anonymous visitor from reporting the same comment more than once. The same email address also cannot report the same comment more than once. When a comment reaches 5 total reports and is currently `approved`, it is automatically moved back to `pending` for admin review.
-
-举报功能要求举报者填写邮箱。举报者邮箱会以明文形式保存在 D1 中，站点管理员可以在后台看到。举报记录不会保存原始 IP 或原始 User-Agent；匿名 `reporter_hash` 只用于防止同一个匿名访客重复举报同一条评论。同一个邮箱也不能重复举报同一条评论。同一条评论累计收到 5 次举报后，如果当前状态为 `approved`，会自动改回 `pending`，等待管理员重新审核。
-
-## Local Development / 本地开发
-
-```bash
-pnpm install
-pnpm setup
-pnpm db:migrate:local
-pnpm dev
-```
+- [ ] Email notifications
+- [ ] Import / export tools
+- [ ] Better spam protection and rate limiting
+- [ ] Theme customization
+- [ ] More framework examples
+- [ ] npm-based CLI distribution
+- [ ] Stable v1.0 API and database schema
 
 ## Documentation / 文档
 
 - [Quick Start / 快速开始](docs/quick-start.md)
-- [iframe 嵌入 / Iframe Embed](docs/embed.md)
-- [Cloudflare API Token](docs/cloudflare-api-token.md)
-- [Turnstile](docs/turnstile.md)
+- [Embed / iframe mode / iframe 嵌入](docs/embed.md)
 - [Security / 安全说明](docs/security.md)
+- [Turnstile](docs/turnstile.md)
+- [Cloudflare API Token](docs/cloudflare-api-token.md)
 
-## Security Notes / 安全说明
+## Security Notes / 安全提醒
 
-- `PUBLIC_TURNSTILE_SITE_KEY` is public and can be used in frontend code.
-- `TURNSTILE_SECRET_KEY` must only be stored as a Worker secret.
-- `ADMIN_TOKEN` must be kept private in production.
-- `CLOUDFLARE_API_TOKEN` is only for deployment and must not be committed.
-- Reporter email addresses submitted through comment reports are stored in plain text and visible to admins.
-- Report duplicate prevention uses an anonymous hash and does not store raw IP addresses or raw User-Agent values in `comment_reports`.
-- Markdown output is sanitized in the frontend before insertion into the page.
-- Raw user HTML in comments is escaped before Markdown parsing and is not supported as active HTML.
-- Comment links are restricted to safe protocols and rendered with `target="_blank"` plus `rel="nofollow noopener noreferrer"`.
+- `PUBLIC_TURNSTILE_SITE_KEY` is public and can be used in frontend code. / `PUBLIC_TURNSTILE_SITE_KEY` 是公开 Key，可以放在前端。
+- `TURNSTILE_SECRET_KEY` must only be stored as a Worker secret. / `TURNSTILE_SECRET_KEY` 只能作为 Worker secret 保存。
+- `ADMIN_TOKEN` must stay private in production. / `ADMIN_TOKEN` 在正式环境中必须保密。
+- `CLOUDFLARE_API_TOKEN` is only for deployment and must not be committed. / `CLOUDFLARE_API_TOKEN` 只用于部署，不能提交到仓库。
+- Reporter email addresses are stored in plain text in D1 and are visible to admins. / 举报者邮箱会以明文形式保存在 D1 中，管理员可见。
+- Report duplicate prevention uses anonymous hashes and does not store raw IP addresses or raw User-Agent values in `comment_reports`. / 举报去重使用匿名 hash，不在 `comment_reports` 中保存原始 IP 或原始 User-Agent。
+- Markdown output is sanitized in the frontend before insertion into the page. / Markdown 输出插入页面前会在前端清理。
+- Raw user HTML in comments is escaped before Markdown parsing and is not supported as active HTML. / 评论中的原始 HTML 会在 Markdown 解析前转义，不作为活动 HTML 支持。
+- Comment links are restricted to safe protocols and rendered with `target="_blank"` plus `rel="nofollow noopener noreferrer"`. / 评论链接限制为安全协议，并带有 `target="_blank"` 与 `rel="nofollow noopener noreferrer"`。
 
-中文：
+## License / 许可证
 
-- `PUBLIC_TURNSTILE_SITE_KEY` 是公开 Key，可以放在前端。
-- `TURNSTILE_SECRET_KEY` 只能作为 Worker secret 保存。
-- `ADMIN_TOKEN` 在正式环境中必须保密。
-- `CLOUDFLARE_API_TOKEN` 只用于部署，不能提交到仓库。
+MIT License.
