@@ -54,7 +54,7 @@ process.chdir(repoRoot);
 function parseArgs(argv: string[]) {
   let secretsFile = "secrets.production.json";
   let skipInstall = false;
-  let loginCallbackPort = Number(process.env.WRANGLER_LOGIN_CALLBACK_PORT ?? 8989);
+  let loginCallbackPort = Number(process.env.WRANGLER_LOGIN_CALLBACK_PORT ?? 18789);
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
