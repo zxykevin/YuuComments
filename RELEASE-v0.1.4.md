@@ -1,10 +1,15 @@
 # YuuComments v0.1.4
 
-> This release adds comment reporting, admin report management, and automatic pending review after repeated reports.
-> 此版本新增评论举报、后台举报管理，以及多次举报后的自动回审。
+This release adds a complete lightweight reporting workflow and safe Markdown / KaTeX rendering for comments.
+
+此版本新增完整的轻量举报流程，并支持安全的 Markdown 评论与 KaTeX 数学公式渲染。
 
 ## Features / 新功能
 
+- Added safe Markdown rendering for comment content.
+  新增安全 Markdown 评论渲染。
+- Added LaTeX math rendering with KaTeX.
+  新增基于 KaTeX 的 LaTeX 数学公式渲染。
 - Added comment reporting for public comments.
   新增评论举报功能。
 - Reporters are required to provide an email address.
