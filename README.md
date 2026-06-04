@@ -60,8 +60,11 @@ YuuComments packages a working blog comment system into a standalone open-source
 - Normal comments and replies
 - Nested replies
 - Anonymous comment likes
+- Comment reporting
 - Admin moderation dashboard
+- Admin report management
 - Comment status management: pending / approved / spam / deleted
+- Automatic pending review after 5 reports
 - Admin like count display
 - Search comments by nickname, content, or page path
 - Turnstile verification
@@ -70,6 +73,12 @@ YuuComments packages a working blog comment system into a standalone open-source
 - Works with Astro, Hexo, Hugo, VuePress and plain HTML
 - No server required
 - No GitHub login required
+
+中文功能补充：
+
+- 评论举报
+- 后台举报管理
+- 评论收到 5 次举报后自动转回待审核
 
 ## 功能
 
@@ -102,6 +111,9 @@ You can:
 - delete comments
 - search comments
 - view email addresses in the admin panel
+- view comment reports
+- resolve or ignore reports
+- delete reported comments
 
 ## 管理后台
 
@@ -142,6 +154,10 @@ After deployment, publish `dist/frontend/` to your site's `/comments/` directory
 
 v0.1.3 新增评论点赞功能。新部署用户使用当前 `schema.sql` 或一键部署流程即可，不需要额外手动改 schema。
 v0.1.3 adds comment likes. New deployments using the current `schema.sql` or the one-command deployment flow do not need manual schema edits.
+
+v0.1.4 adds comment reporting and admin report management. Reporters must provide an email address, and existing deployments need to apply the new D1 migration before using reports.
+
+v0.1.4 新增评论举报和后台举报管理。举报者必须填写邮箱，旧版本升级用户需要先执行新的 D1 migration。
 
 从旧版本升级的用户需要执行新增 D1 migration。
 Users upgrading from an older version need to apply the new D1 migration.
@@ -222,11 +238,18 @@ Use `YuuComments.astro` for inline integration, or `YuuCommentsIframe.astro` whe
 - `POST /api/comments`: create a comment or reply.
 - `POST /api/comments/:id/like`: like an approved comment.
 - `DELETE /api/comments/:id/like`: remove the current visitor's like from an approved comment.
+- `POST /api/comments/:id/report`: report a comment with reporter email, reason, and optional message.
 - `GET /api/admin/comments?status=approved`: list comments in the admin dashboard.
 - `PATCH /api/admin/comments/:id/status`: update moderation status.
+- `GET /api/admin/reports?status=open`: list comment reports in the admin dashboard.
+- `PATCH /api/admin/reports/:id/status`: mark a report as open, resolved, or ignored.
 
 点赞使用匿名 `visitor_hash` 限制同一访问者对同一条评论只能点赞一次，不需要登录，也不会存储原始 IP 或原始 User-Agent。它不是强身份系统，换设备、换浏览器或换网络可能被视为不同访问者，更适合轻量静态站评论互动。
 Likes use an anonymous `visitor_hash` so one visitor can like a comment once. No login is required, and raw IP addresses or raw User-Agent values are not stored. This is not a strong identity system; changing devices, browsers, or networks may count as a different visitor, which fits lightweight static-site interaction.
+
+Reports require the reporter to enter an email address. The reporter email is stored in plain text in D1 and is visible to site admins in the admin dashboard. Reports do not store raw IP addresses or raw User-Agent values; an anonymous `reporter_hash` is used only to prevent the same anonymous visitor from reporting the same comment more than once. The same email address also cannot report the same comment more than once. When a comment reaches 5 total reports and is currently `approved`, it is automatically moved back to `pending` for admin review.
+
+举报功能要求举报者填写邮箱。举报者邮箱会以明文形式保存在 D1 中，站点管理员可以在后台看到。举报记录不会保存原始 IP 或原始 User-Agent；匿名 `reporter_hash` 只用于防止同一个匿名访客重复举报同一条评论。同一个邮箱也不能重复举报同一条评论。同一条评论累计收到 5 次举报后，如果当前状态为 `approved`，会自动改回 `pending`，等待管理员重新审核。
 
 ## Local Development / 本地开发
 
@@ -251,6 +274,8 @@ pnpm dev
 - `TURNSTILE_SECRET_KEY` must only be stored as a Worker secret.
 - `ADMIN_TOKEN` must be kept private in production.
 - `CLOUDFLARE_API_TOKEN` is only for deployment and must not be committed.
+- Reporter email addresses submitted through comment reports are stored in plain text and visible to admins.
+- Report duplicate prevention uses an anonymous hash and does not store raw IP addresses or raw User-Agent values in `comment_reports`.
 
 中文：
 

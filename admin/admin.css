@@ -34,6 +34,19 @@ header h1 {
   margin-top: 0;
 }
 
+.ya-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ya-tabs .is-active {
+  border-color: var(--ya-accent);
+  background: var(--ya-accent);
+  color: #fff;
+}
+
 .ya-toolbar,
 .ya-card,
 .ya-empty {
@@ -130,11 +143,27 @@ button.is-danger {
   margin: 0.2rem 0 0;
 }
 
+.ya-email {
+  font-weight: 700;
+  color: var(--ya-text);
+}
+
 .ya-content {
   border-radius: 8px;
   background: var(--ya-soft);
   padding: 0.8rem;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ya-report-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.ya-report-comment {
+  display: grid;
+  gap: 0.6rem;
 }
 
 .status {
@@ -163,6 +192,25 @@ button.is-danger {
   color: #4b5563;
 }
 
+.status-report-open {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-report-resolved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-report-ignored {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 @media (min-width: 760px) {
   .ya-toolbar {
     grid-template-columns: 1fr 1fr;
@@ -170,5 +218,14 @@ button.is-danger {
 
   .ya-filters {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .ya-card header,
+  .ya-card footer,
+  .ya-card dl {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
