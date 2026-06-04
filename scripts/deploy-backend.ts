@@ -226,6 +226,17 @@ function getWranglerIdentity() {
   return JSON.parse(json) as WranglerIdentity;
 }
 
+function ensureWranglerIdentity() {
+  try {
+    return getWranglerIdentity();
+  } catch {
+    console.log("");
+    console.log("==> Cloudflare login required");
+    invokeCheckedCommand("Opening Cloudflare login", pnpmInvocation, ["exec", "wrangler", "login"]);
+    return getWranglerIdentity();
+  }
+}
+
 function getD1Config(): D1Config {
   const config = readFileSync(wranglerConfigPath, "utf8");
   const blockMatch = config.match(/^\[\[d1_databases\]\](.*?)(?=^\[\[|^\[|\z)/ms);
@@ -670,8 +681,9 @@ async function main() {
       copyFileSync(wranglerExamplePath, wranglerConfigPath);
     }
 
-    invokeCheckedCommand("Checking Cloudflare login", pnpmInvocation, ["exec", "wrangler", "whoami", "--json"], { stdio: "ignore" });
-    const identity = getWranglerIdentity();
+    console.log("");
+    console.log("==> Checking Cloudflare login");
+    const identity = ensureWranglerIdentity();
 
   if (!args.skipInstall) {
     invokeCheckedCommand("Installing dependencies", pnpmInvocation, ["install", "--frozen-lockfile"]);
