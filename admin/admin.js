@@ -412,7 +412,7 @@
     const visible = visibleReports();
     reportsRoot.replaceChildren();
     if (!getToken()) {
-      reportsRoot.innerHTML = `<div class="ya-empty">璇峰厛杈撳叆 ADMIN_TOKEN銆?/div>`;
+      reportsRoot.innerHTML = `<div class="ya-empty">请先输入 ADMIN_TOKEN。</div>`;
       return;
     }
     if (!visible.length) {
@@ -532,7 +532,7 @@
       renderReports();
       return;
     }
-    showMessage("姝ｅ湪鍔犺浇...");
+    showMessage("正在加载...");
     try {
       const response = await fetch(
         `${apiBase}/api/admin/reports?status=${encodeURIComponent(activeReportStatus)}`,
