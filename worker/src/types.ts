@@ -75,3 +75,60 @@ export interface CommentReportRow {
   resolved_at: string | null;
   resolved_by: string | null;
 }
+
+export interface AdminReportRow {
+  id: string;
+  comment_id: string;
+  reporter_email: string;
+  reason: ReportReason;
+  message: string | null;
+  status: ReportStatus;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  comment_id_joined: string | null;
+  comment_page_path: string | null;
+  comment_parent_id: string | null;
+  comment_nickname: string | null;
+  comment_email: string | null;
+  comment_email_hash: string | null;
+  comment_website: string | null;
+  comment_content: string | null;
+  comment_status: string | null;
+  comment_created_at: string | null;
+  comment_updated_at: string | null;
+  like_count?: number;
+}
+
+export interface AdminReportComment {
+  id: string;
+  pagePath: string | null;
+  parentId: string | null;
+  nickname: string | null;
+  email: string | null;
+  emailHash: string | null;
+  website: string | null;
+  content: string | null;
+  status: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  likeCount: number;
+}
+
+export interface AdminReportItem {
+  id: string;
+  commentId: string;
+  reporterEmail: string;
+  reason: ReportReason;
+  message: string | null;
+  status: ReportStatus;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  comment: AdminReportComment | null;
+}
+
+export interface AdminReportResponse {
+  ok: true;
+  reports: AdminReportItem[];
+}

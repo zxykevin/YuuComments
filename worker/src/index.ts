@@ -4,6 +4,10 @@ import {
   getAdminComments,
   updateAdminCommentStatus,
 } from "./routes/adminComments";
+import {
+  getAdminReports,
+  updateAdminReportStatus,
+} from "./routes/adminReports";
 import { createComment } from "./routes/createComment";
 import { getComments } from "./routes/getComments";
 import { likeComment, unlikeComment } from "./routes/commentLikes";
@@ -55,6 +59,22 @@ export default {
       if (url.pathname === "/api/admin/comments") {
         if (request.method === "GET") {
           const response = await getAdminComments(request, env);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      if (url.pathname === "/api/admin/reports") {
+        if (request.method === "GET") {
+          const response = await getAdminReports(request, env);
           return withCors(request, response);
         }
 
@@ -120,6 +140,29 @@ export default {
             request,
             env,
             adminStatusMatch[1],
+          );
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      const adminReportStatusMatch = url.pathname.match(
+        /^\/api\/admin\/reports\/([^/]+)\/status$/,
+      );
+      if (adminReportStatusMatch) {
+        if (request.method === "PATCH") {
+          const response = await updateAdminReportStatus(
+            request,
+            env,
+            adminReportStatusMatch[1],
           );
           return withCors(request, response);
         }
