@@ -1,5 +1,14 @@
 (() => {
   const ROOT_SELECTOR = "#yuucomments, #yuulog-comments";
+  const COMMENT_RENDER_ASSETS = {
+    assetBase: "https://cdn.jsdelivr.net/npm",
+    marked: "/marked@12.0.2/marked.min.js",
+    dompurify: "/dompurify@3.1.6/dist/purify.min.js",
+    katexCss: "/katex@0.16.10/dist/katex.min.css",
+    katex: "/katex@0.16.10/dist/katex.min.js",
+    katexAutoRender: "/katex@0.16.10/dist/contrib/auto-render.min.js",
+  };
+  const COMMENT_LINK_REL = "nofollow noopener noreferrer";
   const I18N = {
     "zh-CN": {
       comments: "评论",
@@ -112,6 +121,44 @@
     return {
       apiBase: root.dataset.apiBase || globalConfig.apiBase || "",
       siteKey: root.dataset.siteKey || globalConfig.turnstileSiteKey || "",
+    };
+  }
+
+  function readBoolean(value, fallback) {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return fallback;
+  }
+
+  function resolveCommentRenderConfig(root) {
+    const globalConfig = window.YuuCommentsConfig ?? {};
+    const params = new URLSearchParams(window.location.search);
+    const assetBase =
+      globalConfig.commentRenderAssetBase ||
+      globalConfig.assetBase ||
+      COMMENT_RENDER_ASSETS.assetBase;
+    const assets = globalConfig.commentRenderAssets || {};
+    const assetUrl = (key) => {
+      const value = assets[key] || COMMENT_RENDER_ASSETS[key];
+      return /^https?:\/\//i.test(value) ? value : `${assetBase}${value}`;
+    };
+
+    return {
+      markdown: readBoolean(
+        root.dataset.markdown,
+        readBoolean(params.get("markdown"), globalConfig.markdown !== false),
+      ),
+      math: readBoolean(
+        root.dataset.math,
+        readBoolean(params.get("math"), globalConfig.math !== false),
+      ),
+      assets: {
+        marked: assetUrl("marked"),
+        dompurify: assetUrl("dompurify"),
+        katexCss: assetUrl("katexCss"),
+        katex: assetUrl("katex"),
+        katexAutoRender: assetUrl("katexAutoRender"),
+      },
     };
   }
 
@@ -300,6 +347,163 @@
     return window.__yuuCommentsTurnstileLoader;
   }
 
+  function loadScriptOnce(id, src, isReady) {
+    if (isReady()) return Promise.resolve();
+    const existingScript = document.querySelector(`script[data-yuucomments-lib="${id}"]`);
+    const script = existingScript ?? document.createElement("script");
+
+    if (!window.__yuuCommentsScriptLoaders) window.__yuuCommentsScriptLoaders = {};
+    if (window.__yuuCommentsScriptLoaders[id]) {
+      return window.__yuuCommentsScriptLoaders[id];
+    }
+
+    window.__yuuCommentsScriptLoaders[id] = new Promise((resolve, reject) => {
+      script.addEventListener(
+        "load",
+        () => (isReady() ? resolve() : reject(new Error(`${id} unavailable`))),
+        { once: true },
+      );
+      script.addEventListener(
+        "error",
+        () => reject(new Error(`${id} failed to load`)),
+        { once: true },
+      );
+
+      if (!existingScript) {
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.dataset.yuucommentsLib = id;
+        document.head.append(script);
+      }
+    });
+
+    return window.__yuuCommentsScriptLoaders[id];
+  }
+
+  function loadStyleOnce(id, href) {
+    if (document.querySelector(`link[data-yuucomments-lib="${id}"]`)) {
+      return;
+    }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.yuucommentsLib = id;
+    document.head.append(link);
+  }
+
+  async function prepareCommentRendering(root) {
+    const config = resolveCommentRenderConfig(root);
+    if (!config.markdown && !config.math) return;
+
+    try {
+      const loaders = [];
+      if (config.markdown) {
+        loaders.push(
+          loadScriptOnce("marked", config.assets.marked, () => Boolean(window.marked)),
+          loadScriptOnce("dompurify", config.assets.dompurify, () =>
+            Boolean(window.DOMPurify),
+          ),
+        );
+      }
+      if (config.math) {
+        loadStyleOnce("katex-css", config.assets.katexCss);
+        loaders.push(
+          loadScriptOnce("katex", config.assets.katex, () => Boolean(window.katex)).then(
+            () =>
+              loadScriptOnce("katex-auto-render", config.assets.katexAutoRender, () =>
+                Boolean(window.renderMathInElement),
+              ),
+          ),
+        );
+      }
+      await Promise.all(loaders);
+    } catch (error) {
+      console.warn("YuuComments comment renderer dependencies failed to load.", error);
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;");
+  }
+
+  function sanitizeCommentHtml(html) {
+    return window.DOMPurify.sanitize(html, {
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+      FORBID_TAGS: ["style", "script", "iframe", "object", "embed", "form", "input"],
+      FORBID_ATTR: ["style", "onerror", "onload", "onclick"],
+    });
+  }
+
+  function hardenCommentLinks(container) {
+    for (const link of container.querySelectorAll("a[href]")) {
+      let url;
+      try {
+        url = new URL(link.getAttribute("href"), window.location.href);
+      } catch {
+        link.removeAttribute("href");
+        continue;
+      }
+      if (!["http:", "https:", "mailto:"].includes(url.protocol)) {
+        link.removeAttribute("href");
+        continue;
+      }
+      link.target = "_blank";
+      link.rel = COMMENT_LINK_REL;
+    }
+  }
+
+  function renderCommentMath(container) {
+    if (!window.renderMathInElement) return;
+    window.renderMathInElement(container, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\[", right: "\\]", display: true },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "$", right: "$", display: false },
+      ],
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      throwOnError: false,
+    });
+  }
+
+  function renderCommentContent(root, container, content) {
+    const config = resolveCommentRenderConfig(root);
+    container.className = "yc-content";
+
+    if (!config.markdown && !config.math) {
+      container.textContent = content;
+      return;
+    }
+
+    if (config.markdown && window.marked && window.DOMPurify) {
+      container.classList.add("yc-markdown");
+      try {
+        const html = window.marked.parse(escapeHtml(content), {
+          gfm: true,
+          breaks: true,
+          headerIds: false,
+          mangle: false,
+        });
+        container.innerHTML = sanitizeCommentHtml(html);
+        hardenCommentLinks(container);
+        if (config.math) renderCommentMath(container);
+      } catch (error) {
+        console.warn("YuuComments failed to render comment content.", error);
+        container.textContent = content;
+      }
+      return;
+    }
+
+    container.textContent = content;
+    if (config.math && window.renderMathInElement) {
+      container.classList.add("yc-markdown");
+      renderCommentMath(container);
+    }
+  }
+
   function renderState(container, message) {
     container.innerHTML = `<div class="yc-state"><p>${message}</p></div>`;
   }
@@ -375,9 +579,8 @@
     time.textContent = formatLocalTime(comment.createdAt);
     meta.append(author, time);
 
-    const content = document.createElement("p");
-    content.className = "yc-content";
-    content.textContent = comment.content;
+    const content = document.createElement("div");
+    renderCommentContent(root, content, comment.content);
 
     const actions = document.createElement("div");
     actions.className = "yc-actions";
@@ -598,6 +801,7 @@
       if (!response.ok || !data.ok || !Array.isArray(data.comments)) {
         throw new Error(t(root, "loadFailedError"));
       }
+      await prepareCommentRendering(root);
       renderComments(root, data.comments);
     } catch {
       renderState(list, t(root, "loadFailed"));
