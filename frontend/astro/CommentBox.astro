@@ -3,12 +3,16 @@ interface Props {
   pageKey?: string;
   apiBase: string;
   siteKey: string;
+  markdown?: boolean;
+  math?: boolean;
 }
 
 const {
   pageKey = Astro.url.pathname,
   apiBase,
   siteKey,
+  markdown = true,
+  math = true,
 } = Astro.props;
 ---
 
@@ -17,6 +21,8 @@ const {
   data-page-key={pageKey}
   data-api-base={apiBase}
   data-site-key={siteKey}
+  data-markdown={String(markdown)}
+  data-math={String(math)}
 ></div>
 
 <link rel="stylesheet" href="/comments/comments.css" />

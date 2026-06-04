@@ -1,12 +1,19 @@
 ---
 interface Props {
   pageKey?: string;
+  markdown?: boolean;
+  math?: boolean;
 }
 
-const { pageKey = Astro.url.pathname } = Astro.props;
+const { pageKey = Astro.url.pathname, markdown = true, math = true } = Astro.props;
 ---
 
-<div id="yuucomments" data-page-key={pageKey}></div>
+<div
+  id="yuucomments"
+  data-page-key={pageKey}
+  data-markdown={String(markdown)}
+  data-math={String(math)}
+></div>
 
 <link rel="stylesheet" href="/comments/comments.css" />
 <script src="/comments/yuucomments.config.js"></script>

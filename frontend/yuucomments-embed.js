@@ -7,6 +7,8 @@
     const pageKey = root.dataset.pageKey || "";
     const theme = root.dataset.theme || "";
     const lang = root.dataset.lang || "";
+    const markdown = root.dataset.markdown || "";
+    const math = root.dataset.math || "";
 
     if (pageKey) {
       url.searchParams.set("pageKey", pageKey);
@@ -16,6 +18,12 @@
     }
     if (lang) {
       url.searchParams.set("lang", lang);
+    }
+    if (markdown) {
+      url.searchParams.set("markdown", markdown);
+    }
+    if (math) {
+      url.searchParams.set("math", math);
     }
 
     return url.toString();

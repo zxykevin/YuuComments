@@ -8,6 +8,8 @@
 - `astro/YuuComments.astro`
 - `astro/YuuCommentsIframe.astro`
 
+`vanilla/comments.js` renders approved comment content as safe Markdown by default and can render LaTeX formulas with KaTeX. The raw comment content remains the original Markdown text returned by the API.
+
 普通 HTML 可直接使用 `vanilla/` 版本；Astro 项目可以使用组件封装。
 
 部署脚本会生成：
@@ -31,3 +33,31 @@
 `dist/astro/YuuComments.astro` 是可直接复制到任意 Astro 项目的最小普通直嵌组件版本。它默认使用 `Astro.url.pathname` 作为页面键，并读取 `/comments/yuucomments.config.js` 中的公开配置。
 
 `dist/astro/YuuCommentsIframe.astro` 是 iframe 嵌入组件版本。它默认使用 `/comments/embed.html`，适合需要隔离页面 CSS 的 Astro / Mizuki 项目。
+## Markdown and math rendering
+
+```html
+<div
+  id="yuucomments"
+  data-page-key="/posts/example/"
+  data-markdown="true"
+  data-math="true"
+></div>
+```
+
+`data-markdown` and `data-math` accept `"true"` or `"false"` and take priority over `window.YuuCommentsConfig.markdown` and `window.YuuCommentsConfig.math`. Both are enabled by default. For iframe mode, set the same data attributes on `#yuucomments-iframe`; the embed script forwards them to `embed.html`.
+
+The vanilla frontend loads marked, DOMPurify, KaTeX, and KaTeX auto-render from jsDelivr by default. Static deployments can override these URLs with `window.YuuCommentsConfig.commentRenderAssetBase` or `window.YuuCommentsConfig.commentRenderAssets`.
+
+Example comment:
+
+~~~markdown
+Regular text, **bold**, ~~deleted~~, and `inline code`.
+
+```ts
+const answer = 42;
+```
+
+$E = mc^2$
+
+$$F = ma$$
+~~~

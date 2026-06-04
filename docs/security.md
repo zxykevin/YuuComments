@@ -1,5 +1,14 @@
 # Security
 
+## Comment Markdown and math
+
+- Comment content is still stored as user-submitted plain Markdown text.
+- Markdown rendering happens only in the frontend.
+- Raw user HTML is escaped before Markdown parsing, so it is not supported as active HTML.
+- Markdown HTML is sanitized with DOMPurify before it is inserted into the comment list.
+- Comment links are restricted to safe protocols and receive `target="_blank"` and `rel="nofollow noopener noreferrer"`.
+- LaTeX formulas are rendered with KaTeX using `throwOnError: false`, and code blocks / inline code are ignored by the math renderer.
+
 - 不要提交真实的 `worker/wrangler.toml`
 - 不要提交 `secrets.production.json`
 - `ADMIN_TOKEN` 只应保存在本地安全位置或 Worker secret 中

@@ -251,7 +251,12 @@ Publish the three files in `dist/frontend/` to your site's `/comments/` director
 Add the snippet below to the page where comments should appear.
 
 ```html
-<div id="yuucomments" data-page-key="/posts/example/"></div>
+<div
+  id="yuucomments"
+  data-page-key="/posts/example/"
+  data-markdown="true"
+  data-math="true"
+></div>
 <link rel="stylesheet" href="/comments/comments.css" />
 <script src="/comments/yuucomments.config.js"></script>
 <script src="/comments/comments.js" defer></script>
@@ -259,6 +264,8 @@ Add the snippet below to the page where comments should appear.
 
 `data-page-key` 用来区分不同页面的评论。
 `data-page-key` separates comments for different pages.
+
+`data-markdown` and `data-math` are enabled by default. Set either value to `"false"` to disable Markdown or LaTeX formula rendering. HTML data attributes take priority over `window.YuuCommentsConfig.markdown` and `window.YuuCommentsConfig.math`.
 
 如果不写 `data-page-key`，前端会使用当前页面路径。
 If `data-page-key` is omitted, the frontend uses the current page path.

@@ -59,6 +59,8 @@ YuuComments packages a working blog comment system into a standalone open-source
 - Cloudflare Pages frontend demo
 - Normal comments and replies
 - Nested replies
+- Markdown comments with GFM-style formatting
+- LaTeX math rendering with KaTeX
 - Anonymous comment likes
 - Comment reporting
 - Admin moderation dashboard
@@ -157,6 +159,8 @@ v0.1.3 adds comment likes. New deployments using the current `schema.sql` or the
 
 v0.1.4 adds comment reporting and admin report management. Reporters must provide an email address, and existing deployments need to apply the new D1 migration before using reports.
 
+v0.1.4 also adds frontend-only Markdown comments and LaTeX math rendering. Comment content is still stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
+
 v0.1.4 新增评论举报和后台举报管理。举报者必须填写邮箱，旧版本升级用户需要先执行新的 D1 migration。
 
 从旧版本升级的用户需要执行新增 D1 migration。
@@ -173,11 +177,34 @@ If you want to use the built-in dashboard, publish `dist/admin/` to your site's 
 Then add this snippet to the page where comments should appear.
 
 ```html
-<div id="yuucomments" data-page-key="/posts/example/"></div>
+<div
+  id="yuucomments"
+  data-page-key="/posts/example/"
+  data-markdown="true"
+  data-math="true"
+></div>
 <link rel="stylesheet" href="/comments/comments.css" />
 <script src="/comments/yuucomments.config.js"></script>
 <script src="/comments/comments.js" defer></script>
 ```
+
+`data-markdown` and `data-math` are enabled by default. Set either value to `"false"` to disable Markdown or formula rendering for that widget. You can also set `window.YuuCommentsConfig.markdown` and `window.YuuCommentsConfig.math`; HTML data attributes take priority.
+
+Markdown and math comment example:
+
+~~~markdown
+**Bold** and ~~deleted~~ text with `inline code`.
+
+> A quoted paragraph.
+
+```js
+console.log("YuuComments");
+```
+
+Inline math: $E = mc^2$
+
+$$F = ma$$
+~~~
 
 如果你希望评论区和页面 CSS 隔离，可以使用 iframe 嵌入方式。
 If you want to isolate the comment widget from page CSS, you can use iframe embed mode.
@@ -192,6 +219,8 @@ Iframe embed only needs the page to load `yuucomments-embed.js`, while the comme
   data-src="/comments/embed.html"
   data-theme="dark"
   data-lang="zh-CN"
+  data-markdown="true"
+  data-math="true"
 ></div>
 <script src="/comments/yuucomments-embed.js" defer></script>
 ```
@@ -276,6 +305,9 @@ pnpm dev
 - `CLOUDFLARE_API_TOKEN` is only for deployment and must not be committed.
 - Reporter email addresses submitted through comment reports are stored in plain text and visible to admins.
 - Report duplicate prevention uses an anonymous hash and does not store raw IP addresses or raw User-Agent values in `comment_reports`.
+- Markdown output is sanitized in the frontend before insertion into the page.
+- Raw user HTML in comments is escaped before Markdown parsing and is not supported as active HTML.
+- Comment links are restricted to safe protocols and rendered with `target="_blank"` plus `rel="nofollow noopener noreferrer"`.
 
 中文：
 
