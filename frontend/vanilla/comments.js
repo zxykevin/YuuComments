@@ -56,6 +56,56 @@
       submitted: "Comment submitted.",
     },
   };
+  Object.assign(I18N["zh-CN"], {
+    report: "举报",
+    reportEmail: "你的邮箱",
+    reportReason: "举报原因",
+    reportMessage: "补充说明，可选",
+    reportSubmit: "提交举报",
+    reportCancel: "取消",
+    reportSubmitted: "举报已提交。",
+    reportAlreadySubmitted: "你已经举报过这条评论。",
+    reportFailed: "举报提交失败。",
+    reportInvalidEmail: "请输入有效的邮箱地址。",
+    reportPrivacyNote: "你的邮箱会显示给站点管理员，用于处理举报。",
+    reportMovedToPending: "这条评论已因多次举报被转回待审核状态。",
+    reportReasonSpam: "垃圾广告",
+    reportReasonAbuse: "辱骂攻击",
+    reportReasonHarassment: "骚扰",
+    reportReasonPrivacy: "隐私泄露",
+    reportReasonIllegal: "违法内容",
+    reportReasonOther: "其他",
+  });
+  Object.assign(I18N.en, {
+    report: "Report",
+    reportEmail: "Your email",
+    reportReason: "Reason",
+    reportMessage: "Optional details",
+    reportSubmit: "Submit report",
+    reportCancel: "Cancel",
+    reportSubmitted: "Report submitted.",
+    reportAlreadySubmitted: "You have already reported this comment.",
+    reportFailed: "Failed to submit report.",
+    reportInvalidEmail: "Please enter a valid email address.",
+    reportPrivacyNote: "Your email will be visible to the site admin for report handling.",
+    reportMovedToPending:
+      "This comment has been moved back to pending review after multiple reports.",
+    reportReasonSpam: "Spam",
+    reportReasonAbuse: "Abuse",
+    reportReasonHarassment: "Harassment",
+    reportReasonPrivacy: "Privacy violation",
+    reportReasonIllegal: "Illegal content",
+    reportReasonOther: "Other",
+  });
+  const REPORT_REASONS = [
+    ["spam", "reportReasonSpam"],
+    ["abuse", "reportReasonAbuse"],
+    ["harassment", "reportReasonHarassment"],
+    ["privacy", "reportReasonPrivacy"],
+    ["illegal", "reportReasonIllegal"],
+    ["other", "reportReasonOther"],
+  ];
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   function resolveConfig(root) {
     const globalConfig = window.YuuCommentsConfig ?? {};
@@ -110,6 +160,10 @@
 
   function safeWebsite(value) {
     return value && isHttpWebsite(value) ? value : null;
+  }
+
+  function isValidEmail(value) {
+    return EMAIL_PATTERN.test(value);
   }
 
   function formatLocalTime(value) {
@@ -340,12 +394,164 @@
     replyButton.addEventListener("click", () => {
       setReplyTarget(root, { id: comment.id, nickname: comment.nickname });
     });
-    actions.append(likeButton, replyButton);
+    const reportButton = document.createElement("button");
+    reportButton.type = "button";
+    reportButton.className = "yc-report-button";
+    reportButton.textContent = t(root, "report");
+    reportButton.setAttribute("aria-expanded", "false");
+    const reportContainer = document.createElement("div");
+    reportContainer.className = "yc-report-container";
+    reportButton.addEventListener("click", () => {
+      toggleReportForm(root, comment, reportContainer, reportButton);
+    });
+    actions.append(likeButton, replyButton, reportButton);
 
     const replies = document.createElement("div");
     replies.className = "yc-replies";
-    article.append(meta, content, actions, replies);
+    article.append(meta, content, actions, reportContainer, replies);
     return article;
+  }
+
+  function toggleReportForm(root, comment, container, button) {
+    if (container.firstChild) {
+      container.replaceChildren();
+      button.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    container.append(
+      createReportForm(root, comment, () => {
+        container.replaceChildren();
+        button.setAttribute("aria-expanded", "false");
+      }),
+    );
+    button.setAttribute("aria-expanded", "true");
+  }
+
+  function createReportForm(root, comment, onCancel) {
+    const form = document.createElement("form");
+    form.className = "yc-report-form";
+    form.noValidate = true;
+
+    const emailLabel = document.createElement("label");
+    const emailText = document.createElement("span");
+    emailText.textContent = t(root, "reportEmail");
+    const emailInput = document.createElement("input");
+    emailInput.name = "email";
+    emailInput.type = "email";
+    emailInput.required = true;
+    emailInput.maxLength = 254;
+    emailInput.placeholder = "you@example.com";
+    emailLabel.append(emailText, emailInput);
+
+    const privacyNote = document.createElement("p");
+    privacyNote.className = "yc-report-note";
+    privacyNote.textContent = t(root, "reportPrivacyNote");
+
+    const reasonLabel = document.createElement("label");
+    const reasonText = document.createElement("span");
+    reasonText.textContent = t(root, "reportReason");
+    const reasonSelect = document.createElement("select");
+    reasonSelect.name = "reason";
+    reasonSelect.required = true;
+    for (const [value, labelKey] of REPORT_REASONS) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = t(root, labelKey);
+      reasonSelect.append(option);
+    }
+    reasonLabel.append(reasonText, reasonSelect);
+
+    const messageLabel = document.createElement("label");
+    const messageText = document.createElement("span");
+    messageText.textContent = t(root, "reportMessage");
+    const messageInput = document.createElement("textarea");
+    messageInput.name = "message";
+    messageInput.rows = 3;
+    messageInput.maxLength = 500;
+    messageInput.placeholder = t(root, "reportMessage");
+    messageLabel.append(messageText, messageInput);
+
+    const feedback = document.createElement("p");
+    feedback.className = "yc-report-feedback";
+    feedback.setAttribute("aria-live", "polite");
+
+    const actions = document.createElement("div");
+    actions.className = "yc-report-actions";
+    const submitButton = document.createElement("button");
+    submitButton.type = "submit";
+    submitButton.textContent = t(root, "reportSubmit");
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = t(root, "reportCancel");
+    cancelButton.addEventListener("click", () => {
+      onCancel();
+    });
+    actions.append(submitButton, cancelButton);
+
+    form.append(emailLabel, privacyNote, reasonLabel, messageLabel, feedback, actions);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void submitCommentReport(root, comment, {
+        emailInput,
+        reasonSelect,
+        messageInput,
+        feedback,
+        submitButton,
+      });
+    });
+
+    return form;
+  }
+
+  async function submitCommentReport(root, comment, elements) {
+    const email = elements.emailInput.value.trim();
+    const reason = elements.reasonSelect.value;
+    const message = elements.messageInput.value.trim();
+
+    elements.feedback.textContent = "";
+    if (!isValidEmail(email)) {
+      elements.feedback.textContent = t(root, "reportInvalidEmail");
+      return;
+    }
+
+    elements.submitButton.disabled = true;
+    try {
+      const { apiBase } = resolveConfig(root);
+      const response = await fetch(
+        `${apiBase}/api/comments/${encodeURIComponent(comment.id)}/report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            reason,
+            message: message || null,
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || t(root, "reportFailed"));
+      }
+
+      if (data.alreadyReported === true) {
+        elements.feedback.textContent = t(root, "reportAlreadySubmitted");
+        return;
+      }
+
+      elements.feedback.textContent =
+        data.movedToPending === true
+          ? `${t(root, "reportSubmitted")} ${t(root, "reportMovedToPending")}`
+          : t(root, "reportSubmitted");
+    } catch {
+      elements.feedback.textContent = t(root, "reportFailed");
+    } finally {
+      elements.submitButton.disabled = false;
+    }
   }
 
   async function toggleCommentLike(root, comment, button) {
