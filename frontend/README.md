@@ -48,6 +48,8 @@
 
 The vanilla frontend loads marked, DOMPurify, KaTeX, and KaTeX auto-render from jsDelivr by default. Static deployments can override these URLs with `window.YuuCommentsConfig.commentRenderAssetBase` or `window.YuuCommentsConfig.commentRenderAssets`.
 
+The admin page uses the same renderer for comment content, report messages, and reported comment previews. Admin deployments can set `data-markdown` / `data-math` on `admin/index.html`'s `<body>` or use `window.YuuCommentsAdminConfig`.
+
 Example comment:
 
 ~~~markdown

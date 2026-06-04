@@ -6,6 +6,7 @@
 - Markdown rendering happens only in the frontend.
 - Raw user HTML is escaped before Markdown parsing, so it is not supported as active HTML.
 - Markdown HTML is sanitized with DOMPurify before it is inserted into the comment list.
+- The admin dashboard uses the same sanitized Markdown and KaTeX rendering for comment previews.
 - Comment links are restricted to safe protocols and receive `target="_blank"` and `rel="nofollow noopener noreferrer"`.
 - LaTeX formulas are rendered with KaTeX using `throwOnError: false`, and code blocks / inline code are ignored by the math renderer.
 

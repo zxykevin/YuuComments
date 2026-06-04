@@ -65,6 +65,7 @@ YuuComments packages a working blog comment system into a standalone open-source
 - Comment reporting
 - Admin moderation dashboard
 - Admin report management
+- Admin preview of Markdown comments and LaTeX math
 - Comment status management: pending / approved / spam / deleted
 - Automatic pending review after 5 reports
 - Admin like count display
