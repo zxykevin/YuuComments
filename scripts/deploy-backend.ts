@@ -54,6 +54,7 @@ process.chdir(repoRoot);
 function parseArgs(argv: string[]) {
   let secretsFile = "secrets.production.json";
   let skipInstall = false;
+  let loginCallbackPort = Number(process.env.WRANGLER_LOGIN_CALLBACK_PORT ?? 8989);
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -73,8 +74,23 @@ function parseArgs(argv: string[]) {
       continue;
     }
 
+    if (arg === "--login-callback-port" || arg === "-LoginCallbackPort") {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error(`${arg} requires a value.`);
+      }
+      loginCallbackPort = Number(value);
+      index += 1;
+      continue;
+    }
+
     if (arg.startsWith("--secrets-file=")) {
       secretsFile = arg.slice("--secrets-file=".length);
+      continue;
+    }
+
+    if (arg.startsWith("--login-callback-port=")) {
+      loginCallbackPort = Number(arg.slice("--login-callback-port=".length));
       continue;
     }
 
@@ -86,7 +102,11 @@ function parseArgs(argv: string[]) {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  return { secretsFile, skipInstall };
+  if (!Number.isInteger(loginCallbackPort) || loginCallbackPort < 1 || loginCallbackPort > 65535) {
+    throw new Error("login callback port must be an integer between 1 and 65535.");
+  }
+
+  return { secretsFile, skipInstall, loginCallbackPort };
 }
 
 function resolvePnpmInvocation(): CommandInvocation {
@@ -238,6 +258,8 @@ function ensureWranglerIdentity() {
       "login",
       "--callback-host",
       "127.0.0.1",
+      "--callback-port",
+      String(args.loginCallbackPort),
     ]);
     return getWranglerIdentity();
   }
