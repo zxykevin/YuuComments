@@ -232,7 +232,13 @@ function ensureWranglerIdentity() {
   } catch {
     console.log("");
     console.log("==> Cloudflare login required");
-    invokeCheckedCommand("Opening Cloudflare login", pnpmInvocation, ["exec", "wrangler", "login"]);
+    invokeCheckedCommand("Opening Cloudflare login", pnpmInvocation, [
+      "exec",
+      "wrangler",
+      "login",
+      "--callback-host",
+      "127.0.0.1",
+    ]);
     return getWranglerIdentity();
   }
 }
