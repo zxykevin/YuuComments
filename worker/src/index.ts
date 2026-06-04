@@ -7,6 +7,7 @@ import {
 import { createComment } from "./routes/createComment";
 import { getComments } from "./routes/getComments";
 import { likeComment, unlikeComment } from "./routes/commentLikes";
+import { reportComment } from "./routes/reportComment";
 import { getCorsHeaders, handleOptions } from "./utils/cors";
 import { ValidationError } from "./utils/validate";
 
@@ -78,6 +79,25 @@ export default {
 
         if (request.method === "DELETE") {
           const response = await unlikeComment(request, env, commentLikeMatch[1]);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      const commentReportMatch = url.pathname.match(
+        /^\/api\/comments\/([^/]+)\/report$/,
+      );
+      if (commentReportMatch) {
+        if (request.method === "POST") {
+          const response = await reportComment(request, env, commentReportMatch[1]);
           return withCors(request, response);
         }
 

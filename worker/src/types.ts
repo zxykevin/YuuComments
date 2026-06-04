@@ -52,3 +52,26 @@ export interface CreateCommentInput {
 }
 
 export type CommentStatus = "pending" | "approved" | "spam" | "deleted";
+
+export type ReportReason =
+  | "spam"
+  | "abuse"
+  | "harassment"
+  | "privacy"
+  | "illegal"
+  | "other";
+
+export type ReportStatus = "open" | "resolved" | "ignored";
+
+export interface CommentReportRow {
+  id: string;
+  comment_id: string;
+  reporter_hash: string;
+  reporter_email: string;
+  reason: ReportReason;
+  message: string | null;
+  status: ReportStatus;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+}
