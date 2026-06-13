@@ -2,6 +2,7 @@ import type { Env } from "./types";
 import {
   deleteAdminComment,
   getAdminComments,
+  spamAndBanAdminComment,
   updateAdminCommentStatus,
 } from "./routes/adminComments";
 import {
@@ -149,6 +150,29 @@ export default {
           {
             ok: false,
             message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      const adminSpamBanMatch = url.pathname.match(
+        /^\/api\/admin\/comments\/([^/]+)\/spam-ban$/,
+      );
+      if (adminSpamBanMatch) {
+        if (request.method === "POST") {
+          const response = await spamAndBanAdminComment(
+            request,
+            env,
+            adminSpamBanMatch[1],
+          );
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "Method not allowed.",
           },
           405,
         );

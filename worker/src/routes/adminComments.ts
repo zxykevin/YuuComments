@@ -30,6 +30,8 @@ function toCommentResponse(row: CommentRow): AdminCommentResponse {
     content: row.content,
     status: row.status,
     ip: row.ip,
+    ipHash: row.ip_hash,
+    deviceFingerprint: row.device_fingerprint,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     likeCount: row.like_count ?? 0,
@@ -77,6 +79,8 @@ export async function getAdminComments(
       comments.content,
       comments.status,
       comments.ip,
+      comments.ip_hash,
+      comments.device_fingerprint,
       comments.created_at,
       comments.updated_at,
       COUNT(comment_likes.visitor_hash) AS like_count
@@ -176,6 +180,118 @@ export async function updateAdminCommentStatus(
   return Response.json({
     ok: true,
     status,
+  });
+}
+
+export async function spamAndBanAdminComment(
+  request: Request,
+  env: Env,
+  id: string,
+): Promise<Response> {
+  if (!isAdminAuthorized(request, env)) {
+    return unauthorizedResponse();
+  }
+
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    throw new Error("INVALID_JSON");
+  }
+
+  const body =
+    typeof payload === "object" && payload !== null
+      ? (payload as Record<string, unknown>)
+      : {};
+  const banIp = body.banIp === true;
+  const banDevice = body.banDevice === true;
+  const reason =
+    typeof body.reason === "string" && body.reason.trim()
+      ? body.reason.trim().slice(0, 500)
+      : "Spam comment";
+
+  if (!banIp && !banDevice) {
+    return Response.json(
+      {
+        ok: false,
+        message: "Select at least one ban target.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const comment = await env.DB.prepare(
+    `SELECT id, ip_hash, device_fingerprint
+    FROM comments
+    WHERE id = ?
+    LIMIT 1`,
+  )
+    .bind(id)
+    .first<{
+      id: string;
+      ip_hash: string | null;
+      device_fingerprint: string | null;
+    }>();
+
+  if (!comment) {
+    return Response.json(
+      {
+        ok: false,
+        message: "Comment not found.",
+      },
+      { status: 404 },
+    );
+  }
+
+  const statements = [
+    env.DB.prepare(
+      `UPDATE comments
+      SET status = 'spam', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+    ).bind(id),
+  ];
+
+  if (banIp && comment.ip_hash) {
+    statements.push(
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO comment_bans (
+          id, type, value_hash, reason, source_comment_id
+        ) VALUES (?, 'ip', ?, ?, ?)`,
+      ).bind(crypto.randomUUID(), comment.ip_hash, reason, id),
+    );
+  }
+
+  if (banDevice && comment.device_fingerprint) {
+    statements.push(
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO comment_bans (
+          id, type, value_hash, reason, source_comment_id
+        ) VALUES (?, 'device', ?, ?, ?)`,
+      ).bind(crypto.randomUUID(), comment.device_fingerprint, reason, id),
+    );
+  }
+
+  await env.DB.batch(statements);
+
+  const bans = {
+    ip: banIp && Boolean(comment.ip_hash),
+    device: banDevice && Boolean(comment.device_fingerprint),
+  };
+  const skipped = [
+    banIp && !comment.ip_hash ? "IP hash unavailable" : null,
+    banDevice && !comment.device_fingerprint
+      ? "Device fingerprint unavailable"
+      : null,
+  ].filter((message): message is string => Boolean(message));
+
+  return Response.json({
+    ok: true,
+    status: "spam",
+    bans,
+    message:
+      skipped.length > 0
+        ? `Comment marked as spam. Skipped: ${skipped.join(", ")}.`
+        : "Comment marked as spam and source banned.",
   });
 }
 

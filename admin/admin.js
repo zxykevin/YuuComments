@@ -59,6 +59,10 @@
     feedback.textContent = message;
   }
 
+  function shortHash(value) {
+    return value ? `${value.slice(0, 12)}...` : "Unavailable";
+  }
+
   function readBoolean(value, fallback) {
     if (value === "true") return true;
     if (value === "false") return false;
@@ -383,6 +387,8 @@
           <div><dt>创建时间</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
           <div><dt>邮箱</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
           <div><dt>点赞</dt><dd>${escapeHtml(normalizeLikeCount(comment.likeCount))}</dd></div>
+          <div><dt>IP hash</dt><dd>${escapeHtml(shortHash(comment.ipHash))}</dd></div>
+          <div><dt>Device</dt><dd>${escapeHtml(shortHash(comment.deviceFingerprint))}</dd></div>
         </dl>
         <footer></footer>
       `;
@@ -398,6 +404,12 @@
           button.addEventListener("click", () => updateStatus(comment.id, status));
           footer.append(button);
         });
+      const spamBanButton = document.createElement("button");
+      spamBanButton.type = "button";
+      spamBanButton.className = "is-danger";
+      spamBanButton.textContent = "Mark spam & ban / 标记垃圾并封禁";
+      spamBanButton.addEventListener("click", () => spamAndBanComment(comment.id));
+      footer.append(spamBanButton);
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.className = "is-danger";
@@ -585,6 +597,61 @@
       renderComments();
     } catch (error) {
       showMessage(error instanceof Error ? error.message : "状态更新失败。");
+    }
+  }
+
+  async function spamAndBanComment(id) {
+    if (
+      !window.confirm(
+        "Mark this comment as spam and ban this source? / 是否将该评论标记为垃圾并封禁来源？",
+      )
+    ) {
+      return;
+    }
+
+    const target = (
+      window.prompt("Ban target: ip / device / both", "device") || ""
+    )
+      .trim()
+      .toLowerCase();
+    if (!["ip", "device", "both"].includes(target)) {
+      showMessage("Invalid ban target. Use ip, device, or both.");
+      return;
+    }
+
+    const reason = window.prompt("Ban reason", "Spam comment");
+    if (reason === null) return;
+
+    const token = getToken();
+    try {
+      const response = await fetch(
+        `${apiBase}/api/admin/comments/${encodeURIComponent(id)}/spam-ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            banIp: target === "ip" || target === "both",
+            banDevice: target === "device" || target === "both",
+            reason: reason.trim() || "Spam comment",
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Spam & ban failed.");
+      }
+      comments = comments.map((comment) =>
+        comment.id === id ? { ...comment, status: "spam" } : comment,
+      );
+      showMessage(data.message || "Comment marked as spam and source banned.");
+      renderFilters();
+      renderComments();
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Spam & ban failed.");
     }
   }
 

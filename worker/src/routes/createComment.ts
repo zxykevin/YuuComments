@@ -55,6 +55,28 @@ export async function createComment(request: Request, env: Env): Promise<Respons
   const id = crypto.randomUUID();
   const emailHash = input.email ? await sha256Hex(input.email) : null;
   const ipHash = ip ? await sha256Hex(ip) : null;
+  const activeBan = await env.DB.prepare(
+    `SELECT type
+    FROM comment_bans
+    WHERE (
+      (type = 'ip' AND value_hash = ?)
+      OR (type = 'device' AND value_hash = ?)
+    )
+    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+    LIMIT 1`,
+  )
+    .bind(ipHash ?? "", input.deviceFingerprint ?? "")
+    .first<{ type: string }>();
+
+  if (activeBan) {
+    return Response.json(
+      {
+        ok: false,
+        message: "You are not allowed to post comments.",
+      },
+      { status: 403 },
+    );
+  }
 
   await env.DB.prepare(
     `INSERT INTO comments (
@@ -69,8 +91,9 @@ export async function createComment(request: Request, env: Env): Promise<Respons
       status,
       user_agent,
       ip,
-      ip_hash
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ip_hash,
+      device_fingerprint
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -85,6 +108,7 @@ export async function createComment(request: Request, env: Env): Promise<Respons
       request.headers.get("User-Agent"),
       ip,
       ipHash,
+      input.deviceFingerprint,
     )
     .run();
 

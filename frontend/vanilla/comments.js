@@ -62,6 +62,7 @@
       requiredFields: "Name and comment content are required.",
       invalidWebsite: "Website must start with http:// or https://.",
       submitFailed: "Failed to submit comment.",
+      bannedSource: "Failed to submit comment: this source has been banned.",
       submitted: "Comment submitted.",
     },
   };
@@ -106,6 +107,7 @@
     reportReasonIllegal: "Illegal content",
     reportReasonOther: "Other",
   });
+  I18N["zh-CN"].bannedSource = "评论提交失败：该来源已被封禁。";
   const REPORT_REASONS = [
     ["spam", "reportReasonSpam"],
     ["abuse", "reportReasonAbuse"],
@@ -115,6 +117,32 @@
     ["other", "reportReasonOther"],
   ];
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let deviceFingerprintPromise;
+
+  async function getDeviceFingerprint() {
+    if (!deviceFingerprintPromise) {
+      deviceFingerprintPromise = (async () => {
+        if (!window.crypto?.subtle) return null;
+        const source = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width,
+          screen.height,
+          screen.colorDepth,
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ].join("|");
+        const digest = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(source),
+        );
+        return Array.from(new Uint8Array(digest), (byte) =>
+          byte.toString(16).padStart(2, "0"),
+        ).join("");
+      })().catch(() => null);
+    }
+
+    return deviceFingerprintPromise;
+  }
 
   function resolveConfig(root) {
     const globalConfig = window.YuuCommentsConfig ?? {};
@@ -881,6 +909,7 @@
       submitButton.textContent = t(root, "submitting");
       try {
         const { apiBase } = resolveConfig(root);
+        const deviceFingerprint = await getDeviceFingerprint();
         const response = await fetch(`${apiBase}/api/comments`, {
           method: "POST",
           headers: {
@@ -895,11 +924,15 @@
             website,
             content,
             turnstileToken: root.__yuuCommentsTurnstileToken,
+            deviceFingerprint,
           }),
         });
         const data = await response.json();
         if (!response.ok || !data.ok) {
-          feedback.textContent = data.message || t(root, "submitFailed");
+          feedback.textContent =
+            response.status === 403
+              ? t(root, "bannedSource")
+              : data.message || t(root, "submitFailed");
           return;
         }
         feedback.textContent = t(root, "submitted");

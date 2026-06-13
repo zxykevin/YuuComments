@@ -82,6 +82,7 @@ export function parseCreateCommentInput(payload: unknown): CreateCommentInput {
   const content = typeof body.content === "string" ? body.content.trim() : "";
   const turnstileToken =
     typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : "";
+  const deviceFingerprint = normalizeOptionalString(body.deviceFingerprint);
 
   if (nickname.length < 1 || nickname.length > 30) {
     throw new ValidationError("nickname 长度必须在 1 到 30 之间");
@@ -89,6 +90,10 @@ export function parseCreateCommentInput(payload: unknown): CreateCommentInput {
 
   if (content.length < 1 || content.length > 1000) {
     throw new ValidationError("content 长度必须在 1 到 1000 之间");
+  }
+
+  if (deviceFingerprint && !/^[a-f0-9]{64}$/i.test(deviceFingerprint)) {
+    throw new ValidationError("deviceFingerprint must be a SHA-256 hex string");
   }
 
   return {
@@ -99,5 +104,6 @@ export function parseCreateCommentInput(payload: unknown): CreateCommentInput {
     website,
     content,
     turnstileToken,
+    deviceFingerprint: deviceFingerprint?.toLowerCase() ?? null,
   };
 }

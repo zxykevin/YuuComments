@@ -15,6 +15,8 @@ export interface CommentRow {
   content: string;
   status: string;
   ip: string | null;
+  ip_hash: string | null;
+  device_fingerprint: string | null;
   created_at: string;
   updated_at: string;
   like_count?: number;
@@ -39,6 +41,8 @@ export interface CommentResponse {
 export interface AdminCommentResponse extends CommentResponse {
   email: string | null;
   ip: string | null;
+  ipHash: string | null;
+  deviceFingerprint: string | null;
 }
 
 export interface CreateCommentInput {
@@ -49,9 +53,21 @@ export interface CreateCommentInput {
   website: string | null;
   content: string;
   turnstileToken: string;
+  deviceFingerprint: string | null;
 }
 
 export type CommentStatus = "pending" | "approved" | "spam" | "deleted";
+export type BanType = "ip" | "device";
+
+export interface CommentBanRow {
+  id: string;
+  type: BanType;
+  value_hash: string;
+  reason: string | null;
+  source_comment_id: string | null;
+  created_at: string;
+  expires_at: string | null;
+}
 
 export type ReportReason =
   | "spam"

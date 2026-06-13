@@ -91,6 +91,9 @@ The widget and admin dashboard are static assets. The Worker handles writes, mod
 - Pending / approved / spam / deleted moderation states / 待审核、已通过、垃圾、已删除状态
 - Automatic return to pending review after repeated reports / 多次举报后自动转回待审核
 - Admin dashboard for comments, reports, status changes, and search / 后台管理评论、举报、状态和搜索
+- Admin spam & ban workflow / 后台标记垃圾并封禁来源
+- IP hash and device fingerprint ban support / 支持 IP hash 和设备指纹封禁
+- Block banned sources before comment creation / 创建评论前拦截已封禁来源
 - Search by nickname, content, email, or page path / 按昵称、内容、邮箱或页面路径搜索
 - Turnstile verification / Turnstile 人机验证
 - Light and dark themes / 浅色与深色主题
@@ -139,7 +142,27 @@ v0.1.4 adds frontend-only Markdown comments and LaTeX math rendering. Comment co
 
 v0.1.4 新增前端 Markdown 评论和 LaTeX 公式渲染。评论内容仍以原始 Markdown 文本存储；Markdown 和公式渲染不需要额外后端 migration。
 
+v0.1.5 adds comment source bans. Existing deployments need to apply the new D1 migration before using Spam & Ban.
+
+v0.1.5 新增评论来源封禁。现有部署在使用“标记垃圾并封禁”前需要应用新的 D1 migration。
+
 Full guide / 完整教程: [docs/quick-start.md](docs/quick-start.md)
+
+## API Overview / API 概览
+
+```text
+GET    /api/comments
+POST   /api/comments
+POST   /api/comments/:id/like
+DELETE /api/comments/:id/like
+POST   /api/comments/:id/report
+GET    /api/admin/comments
+PATCH  /api/admin/comments/:id/status
+POST   /api/admin/comments/:id/spam-ban
+DELETE /api/admin/comments/:id
+GET    /api/admin/reports
+PATCH  /api/admin/reports/:id/status
+```
 
 ## Framework Examples / 框架示例
 
