@@ -144,9 +144,9 @@ Then publish / 然后发布：
 - `dist/frontend/` to `/comments/`
 - `dist/admin/` to `/admin/`
 
-v0.1.4 adds frontend-only Markdown comments and LaTeX math rendering. Comment content is still stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
+Markdown comments and LaTeX math rendering are frontend-only. Comment content is stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
 
-v0.1.4 新增前端 Markdown 评论和 LaTeX 公式渲染。评论内容仍以原始 Markdown 文本存储；Markdown 和公式渲染不需要额外后端 migration。
+Markdown 评论和 LaTeX 公式仅在前端渲染。评论内容以原始 Markdown 文本存储；Markdown 和公式渲染不需要额外后端 migration。
 
 v0.1.5 adds comment source bans. Existing deployments need to apply the new D1 migration before using Spam & Ban.
 
@@ -247,6 +247,8 @@ YuuComments 仍处于早期开发阶段。当前重点是可靠性、审核流�
 - [x] Comment report system
 - [x] Markdown comments and LaTeX math rendering
 - [x] Spam & Ban moderation with IP hash and device fingerprint bans
+- [x] Admin Bans view for reviewing and removing source bans
+- [x] English and Chinese Admin interface
 
 ### Planned before v1.0
 
