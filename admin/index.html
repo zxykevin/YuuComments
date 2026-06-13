@@ -1,16 +1,19 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YuuComments 管理后台</title>
+    <title>YuuComments Admin</title>
     <link rel="stylesheet" href="./admin.css" />
   </head>
   <body data-api-base="" data-markdown="true" data-math="true">
     <main class="ya-shell">
-      <header>
-        <p>YuuComments</p>
-        <h1>评论管理</h1>
+      <header class="ya-page-header">
+        <div>
+          <p>YuuComments</p>
+          <h1 data-i18n="adminTitle">Comment management</h1>
+        </div>
+        <button type="button" data-language-toggle>中文</button>
       </header>
 
       <nav class="ya-tabs" data-view-tabs></nav>
@@ -21,12 +24,17 @@
             <span>ADMIN_TOKEN</span>
             <input type="password" name="token" autocomplete="off" />
           </label>
-          <button type="submit">保存</button>
+          <button type="submit" data-i18n="save">Save</button>
         </form>
 
         <label>
-          <span>搜索</span>
-          <input type="search" data-search placeholder="昵称、内容或页面路径" />
+          <span data-i18n="search">Search</span>
+          <input
+            type="search"
+            data-search
+            data-i18n-placeholder="searchPlaceholder"
+            placeholder="Nickname, content, or page path"
+          />
         </label>
 
         <div class="ya-filters" data-filters></div>
@@ -42,58 +50,58 @@
       <form method="dialog" data-spam-ban-form>
         <header>
           <div>
-            <p>Moderation action / 审核操作</p>
-            <h2>Mark spam &amp; ban source</h2>
+            <p data-i18n="moderationAction">Moderation action</p>
+            <h2 data-i18n="spamBanTitle">Mark spam &amp; ban source</h2>
           </div>
-          <button type="button" data-spam-ban-close aria-label="Close">×</button>
+          <button type="button" data-spam-ban-close aria-label="Close">&times;</button>
         </header>
 
-        <p>
+        <p data-i18n="spamBanDescription">
           This will mark the comment as spam and block the selected source from
           submitting new comments.
         </p>
 
         <fieldset>
-          <legend>Ban target / 封禁目标</legend>
+          <legend data-i18n="banTarget">Ban target</legend>
           <div class="ya-choice-grid">
             <label class="ya-choice">
               <input type="radio" name="banTarget" value="device" checked />
-              <strong>Device fingerprint</strong>
-              <span>Recommended. Best for blocking the same browser/device.</span>
+              <strong data-i18n="deviceFingerprint">Device fingerprint</strong>
+              <span data-i18n="deviceDescription">Recommended. Best for blocking the same browser/device.</span>
             </label>
             <label class="ya-choice">
               <input type="radio" name="banTarget" value="ip" />
-              <strong>IP hash</strong>
-              <span>May affect users on the same network.</span>
+              <strong data-i18n="ipHash">IP hash</strong>
+              <span data-i18n="ipDescription">May affect users on the same network.</span>
             </label>
             <label class="ya-choice">
               <input type="radio" name="banTarget" value="both" />
-              <strong>Both</strong>
-              <span>Strongest option for obvious spam/bot abuse.</span>
+              <strong data-i18n="both">Both</strong>
+              <span data-i18n="bothDescription">Strongest option for obvious spam/bot abuse.</span>
             </label>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Ban reason / 封禁原因</legend>
+          <legend data-i18n="banReason">Ban reason</legend>
           <div class="ya-reason-grid">
-            <label><input type="radio" name="banReason" value="Spam" checked /> Spam</label>
-            <label><input type="radio" name="banReason" value="Ads" /> Ads</label>
-            <label><input type="radio" name="banReason" value="Bot" /> Bot</label>
-            <label><input type="radio" name="banReason" value="Abuse" /> Abuse</label>
-            <label><input type="radio" name="banReason" value="Offensive" /> Offensive</label>
-            <label><input type="radio" name="banReason" value="Other" /> Other</label>
+            <label><input type="radio" name="banReason" value="Spam" checked /> <span data-i18n="reasonSpam">Spam</span></label>
+            <label><input type="radio" name="banReason" value="Ads" /> <span data-i18n="reasonAds">Ads</span></label>
+            <label><input type="radio" name="banReason" value="Bot" /> <span data-i18n="reasonBot">Bot</span></label>
+            <label><input type="radio" name="banReason" value="Abuse" /> <span data-i18n="reasonAbuse">Abuse</span></label>
+            <label><input type="radio" name="banReason" value="Offensive" /> <span data-i18n="reasonOffensive">Offensive</span></label>
+            <label><input type="radio" name="banReason" value="Other" /> <span data-i18n="reasonOther">Other</span></label>
           </div>
           <label data-custom-reason hidden>
-            <span>Custom reason / 自定义原因</span>
+            <span data-i18n="customReason">Custom reason</span>
             <input type="text" name="customReason" maxlength="500" />
           </label>
         </fieldset>
 
         <p class="ya-dialog-feedback" data-spam-ban-feedback></p>
         <footer>
-          <button type="button" data-spam-ban-cancel>Cancel</button>
-          <button type="submit" class="is-danger">Mark spam &amp; ban</button>
+          <button type="button" data-spam-ban-cancel data-i18n="cancel">Cancel</button>
+          <button type="submit" class="is-danger" data-i18n="markSpamBan">Mark spam &amp; ban</button>
         </footer>
       </form>
     </dialog>

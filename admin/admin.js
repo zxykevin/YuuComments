@@ -9,28 +9,87 @@
   };
   const COMMENT_LINK_REL = "nofollow noopener noreferrer";
   const statuses = ["pending", "approved", "spam", "deleted"];
-  const statusLabels = {
-    pending: "待审核",
-    approved: "已通过",
-    spam: "垃圾",
-    deleted: "已删除",
-  };
   const reportStatuses = ["open", "resolved", "ignored", "all"];
-  const reportStatusLabels = {
-    open: "Open / 未处理",
-    resolved: "Resolved / 已处理",
-    ignored: "Ignored / 已忽略",
-    all: "All / 全部",
-  };
-  const reportReasonLabels = {
-    spam: "Spam / 垃圾广告",
-    abuse: "Abuse / 辱骂攻击",
-    harassment: "Harassment / 骚扰",
-    privacy: "Privacy violation / 隐私泄露",
-    illegal: "Illegal content / 违法内容",
-    other: "Other / 其他",
-  };
   const storageKey = "yuucomments-admin-token";
+  const languageStorageKey = "yuucomments-admin-language";
+  const I18N = {
+    en: {
+      adminTitle: "Comment management", save: "Save", search: "Search",
+      searchPlaceholder: "Nickname, content, or page path", comments: "Comments",
+      reports: "Reports", bans: "Bans", all: "All", pending: "Pending",
+      approved: "Approved", spam: "Spam", deleted: "Deleted", open: "Open",
+      resolved: "Resolved", ignored: "Ignored", moderationAction: "Moderation action",
+      spamBanTitle: "Mark spam & ban source",
+      spamBanDescription: "This will mark the comment as spam and block the selected source from submitting new comments.",
+      banTarget: "Ban target", deviceFingerprint: "Device fingerprint",
+      deviceDescription: "Recommended. Best for blocking the same browser/device.",
+      ipHash: "IP hash", ipDescription: "May affect users on the same network.",
+      both: "Both", bothDescription: "Strongest option for obvious spam/bot abuse.",
+      banReason: "Ban reason", customReason: "Custom reason", cancel: "Cancel",
+      markSpamBan: "Mark spam & ban", createdAt: "Created at", email: "Email",
+      likes: "Likes", device: "Device", delete: "Delete", noToken: "Please enter ADMIN_TOKEN.",
+      noComments: "No matching comments.", noReports: "No matching reports.",
+      noBans: "No matching bans.", loading: "Loading...", loadingBans: "Loading bans...",
+      resolve: "Resolve", ignore: "Ignore", deleteComment: "Delete comment",
+      reporterEmail: "Reporter email", reportedAt: "Reported at", status: "Status",
+      reportedComment: "Reported comment", author: "Author", page: "Page",
+      commentStatus: "Comment status", missingReportedComment: "Reported comment no longer exists.",
+      reason: "Reason", expiresAt: "Expires at", sourceCommentId: "Source comment ID",
+      sourceAuthor: "Source author", permanent: "Permanent", active: "Active",
+      expired: "Expired", unavailable: "Unavailable", unban: "Unban",
+      unbanConfirm: "Unban this source?", unbanned: "Source unbanned.",
+      spamBanSuccess: "Comment marked as spam and source banned.",
+      spamBanSkipped: "Comment was marked as spam, but some bans were skipped:",
+      deleteConfirm: "Permanently delete this comment? This cannot be undone.",
+      deleteReportedConfirm: "Permanently delete this reported comment?",
+      reportReasonSpam: "Spam", reportReasonAbuse: "Abuse",
+      reportReasonHarassment: "Harassment", reportReasonPrivacy: "Privacy violation",
+      reportReasonIllegal: "Illegal content", reportReasonOther: "Other",
+      reasonSpam: "Spam", reasonAds: "Ads", reasonBot: "Bot", reasonAbuse: "Abuse",
+      reasonOffensive: "Offensive", reasonOther: "Other", reportsLoadFailed: "Reports failed to load.",
+      reportStatusFailed: "Report status update failed.", commentDeleteFailed: "Comment deletion failed.",
+      reportedCommentDeleted: "Reported comment deleted.", commentDeleted: "Comment permanently deleted.",
+      unbanFailed: "Unban failed.", commentsLoadFailed: "Comments failed to load.",
+      bansLoadFailed: "Bans failed to load.", statusUpdateFailed: "Status update failed.",
+      spamBanFailed: "Spam & ban failed.",
+    },
+    "zh-CN": {
+      adminTitle: "评论管理", save: "保存", search: "搜索", searchPlaceholder: "昵称、内容或页面路径",
+      comments: "评论", reports: "举报", bans: "封禁来源", all: "全部", pending: "待审核",
+      approved: "已通过", spam: "垃圾", deleted: "已删除", open: "未处理",
+      resolved: "已处理", ignored: "已忽略", moderationAction: "审核操作",
+      spamBanTitle: "标记垃圾并封禁来源",
+      spamBanDescription: "此操作会将评论标记为垃圾，并阻止选中的来源再次提交评论。",
+      banTarget: "封禁目标", deviceFingerprint: "设备指纹",
+      deviceDescription: "推荐。适合封禁相同浏览器或设备。", ipHash: "IP 哈希",
+      ipDescription: "可能影响同一网络中的其他用户。", both: "同时封禁",
+      bothDescription: "适合明显的垃圾评论或机器人滥用。", banReason: "封禁原因",
+      customReason: "自定义原因", cancel: "取消", markSpamBan: "标记垃圾并封禁",
+      createdAt: "创建时间", email: "邮箱", likes: "点赞", device: "设备", delete: "删除",
+      noToken: "请先输入 ADMIN_TOKEN。", noComments: "没有匹配的评论。",
+      noReports: "没有匹配的举报。", noBans: "没有匹配的封禁来源。",
+      loading: "正在加载...", loadingBans: "正在加载封禁来源...", resolve: "标记已处理",
+      ignore: "忽略", deleteComment: "删除评论", reporterEmail: "举报者邮箱",
+      reportedAt: "举报时间", status: "状态", reportedComment: "被举报评论", author: "作者",
+      page: "页面", commentStatus: "评论状态", missingReportedComment: "被举报评论已不存在。",
+      reason: "原因", expiresAt: "过期时间", sourceCommentId: "来源评论 ID",
+      sourceAuthor: "来源作者", permanent: "永久", active: "生效中", expired: "已过期",
+      unavailable: "不可用", unban: "解除封禁", unbanConfirm: "是否解除该来源的封禁？",
+      unbanned: "已解除来源封禁。", spamBanSuccess: "评论已标记为垃圾并封禁来源。",
+      spamBanSkipped: "评论已标记为垃圾，但部分封禁被跳过：",
+      deleteConfirm: "确定要永久删除这条评论吗？此操作不可恢复。",
+      deleteReportedConfirm: "确定要永久删除这条被举报评论吗？", reportReasonSpam: "垃圾广告",
+      reportReasonAbuse: "辱骂攻击", reportReasonHarassment: "骚扰",
+      reportReasonPrivacy: "隐私泄露", reportReasonIllegal: "违法内容", reportReasonOther: "其他",
+      reasonSpam: "垃圾评论", reasonAds: "广告", reasonBot: "机器人", reasonAbuse: "滥用",
+      reasonOffensive: "冒犯内容", reasonOther: "其他", reportsLoadFailed: "举报加载失败。",
+      reportStatusFailed: "举报状态更新失败。", commentDeleteFailed: "评论删除失败。",
+      reportedCommentDeleted: "被举报评论已删除。", commentDeleted: "评论已永久删除。",
+      unbanFailed: "解除封禁失败。", commentsLoadFailed: "评论加载失败。",
+      bansLoadFailed: "封禁来源加载失败。", statusUpdateFailed: "状态更新失败。",
+      spamBanFailed: "标记垃圾并封禁失败。",
+    },
+  };
   const apiBase = document.body.dataset.apiBase || "";
   const tokenForm = document.querySelector("[data-token-form]");
   const tokenInput = tokenForm.elements.token;
@@ -45,6 +104,7 @@
   const spamBanForm = document.querySelector("[data-spam-ban-form]");
   const spamBanFeedback = document.querySelector("[data-spam-ban-feedback]");
   const customReasonField = document.querySelector("[data-custom-reason]");
+  const languageToggle = document.querySelector("[data-language-toggle]");
   let comments = [];
   let reports = [];
   let bans = [];
@@ -52,10 +112,56 @@
   let activeView = "comments";
   let activeStatus = "";
   let activeReportStatus = "open";
+  let activeLanguage =
+    localStorage.getItem(languageStorageKey) === "zh-CN" ? "zh-CN" : "en";
+
+  function t(key) {
+    return I18N[activeLanguage][key] || I18N.en[key] || key;
+  }
+
+  function statusLabel(status) {
+    return t(status);
+  }
+
+  function reportReasonLabel(reason) {
+    const key = `reportReason${reason.charAt(0).toUpperCase()}${reason.slice(1)}`;
+    return t(key);
+  }
+
+  function banReasonLabel(reason) {
+    const presetKeys = {
+      Spam: "reasonSpam",
+      Ads: "reasonAds",
+      Bot: "reasonBot",
+      Abuse: "reasonAbuse",
+      Offensive: "reasonOffensive",
+      Other: "reasonOther",
+    };
+    return presetKeys[reason] ? t(presetKeys[reason]) : reason;
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = activeLanguage;
+    document.title = `YuuComments - ${t("adminTitle")}`;
+    languageToggle.textContent = activeLanguage === "en" ? "中文" : "English";
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+      element.textContent = t(element.dataset.i18n);
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+      element.placeholder = t(element.dataset.i18nPlaceholder);
+    });
+    renderViewTabs();
+    renderFilters();
+    if (activeView === "comments") renderComments();
+    if (activeView === "reports") renderReports();
+    if (activeView === "bans") renderBans();
+  }
 
   function formatLocalTime(value) {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleString(activeLanguage);
   }
 
   function getToken() {
@@ -67,7 +173,7 @@
   }
 
   function shortHash(value) {
-    return value ? `${value.slice(0, 12)}...` : "Unavailable";
+    return value ? `${value.slice(0, 12)}...` : t("unavailable");
   }
 
   function readBoolean(value, fallback) {
@@ -259,9 +365,9 @@
   function renderViewTabs() {
     viewTabs.replaceChildren();
     [
-      { label: "Comments / 评论", value: "comments" },
-      { label: "Reports / 举报", value: "reports" },
-      { label: "Bans / 封禁来源", value: "bans" },
+      { label: t("comments"), value: "comments" },
+      { label: t("reports"), value: "reports" },
+      { label: t("bans"), value: "bans" },
     ].forEach(({ label, value }) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -305,7 +411,7 @@
       { all: 0, pending: 0, approved: 0, spam: 0, deleted: 0 },
     );
     filters.replaceChildren();
-    [{ label: "全部", value: "" }, ...statuses.map((value) => ({ label: statusLabels[value], value }))].forEach(
+    [{ label: t("all"), value: "" }, ...statuses.map((value) => ({ label: statusLabel(value), value }))].forEach(
       ({ label, value }) => {
         const button = document.createElement("button");
         button.type = "button";
@@ -327,7 +433,7 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = activeReportStatus === status ? "is-active" : "";
-      button.textContent = reportStatusLabels[status];
+      button.textContent = statusLabel(status);
       button.addEventListener("click", () => {
         activeReportStatus = status;
         renderReportFilters();
@@ -378,11 +484,11 @@
     const visible = visibleComments();
     commentsRoot.replaceChildren();
     if (!getToken()) {
-      commentsRoot.innerHTML = `<div class="ya-empty">请先输入 ADMIN_TOKEN。</div>`;
+      commentsRoot.innerHTML = `<div class="ya-empty">${t("noToken")}</div>`;
       return;
     }
     if (!visible.length) {
-      commentsRoot.innerHTML = `<div class="ya-empty">没有匹配的评论。</div>`;
+      commentsRoot.innerHTML = `<div class="ya-empty">${t("noComments")}</div>`;
       return;
     }
 
@@ -395,15 +501,15 @@
             <h2>${escapeHtml(comment.nickname)}</h2>
             <p>${escapeHtml(comment.pagePath)}</p>
           </div>
-          <span class="status status-${comment.status}">${statusLabels[comment.status]}</span>
+          <span class="status status-${comment.status}">${statusLabel(comment.status)}</span>
         </header>
         <div class="ya-content" data-comment-content></div>
         <dl>
-          <div><dt>创建时间</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
-          <div><dt>邮箱</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
-          <div><dt>点赞</dt><dd>${escapeHtml(normalizeLikeCount(comment.likeCount))}</dd></div>
-          <div><dt>IP hash</dt><dd>${escapeHtml(shortHash(comment.ipHash))}</dd></div>
-          <div><dt>Device</dt><dd>${escapeHtml(shortHash(comment.deviceFingerprint))}</dd></div>
+          <div><dt>${t("createdAt")}</dt><dd>${escapeHtml(formatLocalTime(comment.createdAt))}</dd></div>
+          <div><dt>${t("email")}</dt><dd>${escapeHtml(comment.email || "")}</dd></div>
+          <div><dt>${t("likes")}</dt><dd>${escapeHtml(normalizeLikeCount(comment.likeCount))}</dd></div>
+          <div><dt>${t("ipHash")}</dt><dd>${escapeHtml(shortHash(comment.ipHash))}</dd></div>
+          <div><dt>${t("device")}</dt><dd>${escapeHtml(shortHash(comment.deviceFingerprint))}</dd></div>
         </dl>
         <footer></footer>
       `;
@@ -414,7 +520,7 @@
         .forEach((status) => {
           const button = document.createElement("button");
           button.type = "button";
-          button.textContent = statusLabels[status];
+          button.textContent = statusLabel(status);
           button.disabled = comment.status === status;
           button.addEventListener("click", () => updateStatus(comment.id, status));
           footer.append(button);
@@ -422,13 +528,13 @@
       const spamBanButton = document.createElement("button");
       spamBanButton.type = "button";
       spamBanButton.className = "is-danger";
-      spamBanButton.textContent = "Mark spam & ban / 标记垃圾并封禁";
+      spamBanButton.textContent = t("markSpamBan");
       spamBanButton.addEventListener("click", () => spamAndBanComment(comment.id));
       footer.append(spamBanButton);
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.className = "is-danger";
-      deleteButton.textContent = "删除";
+      deleteButton.textContent = t("delete");
       deleteButton.addEventListener("click", () => deleteComment(comment.id));
       footer.append(deleteButton);
       commentsRoot.append(article);
@@ -439,11 +545,11 @@
     const visible = visibleReports();
     reportsRoot.replaceChildren();
     if (!getToken()) {
-      reportsRoot.innerHTML = `<div class="ya-empty">请先输入 ADMIN_TOKEN。</div>`;
+      reportsRoot.innerHTML = `<div class="ya-empty">${t("noToken")}</div>`;
       return;
     }
     if (!visible.length) {
-      reportsRoot.innerHTML = `<div class="ya-empty">No matching reports. / 没有匹配的举报。</div>`;
+      reportsRoot.innerHTML = `<div class="ya-empty">${t("noReports")}</div>`;
       return;
     }
 
@@ -455,14 +561,14 @@
         <header>
           <div>
             <h2>${escapeHtml(report.reporterEmail)}</h2>
-            <p>${escapeHtml(reportReasonLabels[report.reason] || report.reason)}</p>
+            <p>${escapeHtml(reportReasonLabel(report.reason))}</p>
           </div>
-          <span class="status status-report-${report.status}">${escapeHtml(reportStatusLabels[report.status] || report.status)}</span>
+          <span class="status status-report-${report.status}">${escapeHtml(statusLabel(report.status))}</span>
         </header>
         <dl>
-          <div><dt>Reporter email / 举报者邮箱</dt><dd class="ya-email">${escapeHtml(report.reporterEmail)}</dd></div>
-          <div><dt>Reported at / 举报时间</dt><dd>${escapeHtml(formatLocalTime(report.createdAt))}</dd></div>
-          <div><dt>Status / 状态</dt><dd>${escapeHtml(reportStatusLabels[report.status] || report.status)}</dd></div>
+          <div><dt>${t("reporterEmail")}</dt><dd class="ya-email">${escapeHtml(report.reporterEmail)}</dd></div>
+          <div><dt>${t("reportedAt")}</dt><dd>${escapeHtml(formatLocalTime(report.createdAt))}</dd></div>
+          <div><dt>${t("status")}</dt><dd>${escapeHtml(statusLabel(report.status))}</dd></div>
         </dl>
         ${
           report.message
@@ -472,15 +578,15 @@
         ${
           comment
             ? `<section class="ya-report-comment">
-                <h3>Reported comment / 被举报评论</h3>
+                <h3>${t("reportedComment")}</h3>
                 <div class="ya-content" data-reported-comment-content></div>
                 <dl>
-                  <div><dt>Author / 作者</dt><dd>${escapeHtml(comment.nickname || "")}</dd></div>
-                  <div><dt>Page / 页面</dt><dd>${escapeHtml(comment.pagePath || "")}</dd></div>
-                  <div><dt>Comment status / 评论状态</dt><dd>${escapeHtml(comment.status || "")}</dd></div>
+                  <div><dt>${t("author")}</dt><dd>${escapeHtml(comment.nickname || "")}</dd></div>
+                  <div><dt>${t("page")}</dt><dd>${escapeHtml(comment.pagePath || "")}</dd></div>
+                  <div><dt>${t("commentStatus")}</dt><dd>${escapeHtml(statusLabel(comment.status || ""))}</dd></div>
                 </dl>
               </section>`
-            : `<section class="ya-report-comment"><p class="ya-empty">Reported comment no longer exists. / 被举报评论已不存在。</p></section>`
+            : `<section class="ya-report-comment"><p class="ya-empty">${t("missingReportedComment")}</p></section>`
         }
         <footer></footer>
       `;
@@ -491,7 +597,7 @@
       const footer = article.querySelector("footer");
       const resolveButton = document.createElement("button");
       resolveButton.type = "button";
-      resolveButton.textContent = "Resolve / 标记已处理";
+      resolveButton.textContent = t("resolve");
       resolveButton.disabled = report.status === "resolved";
       resolveButton.addEventListener("click", () =>
         updateReportStatus(report.id, "resolved"),
@@ -500,7 +606,7 @@
 
       const ignoreButton = document.createElement("button");
       ignoreButton.type = "button";
-      ignoreButton.textContent = "Ignore / 忽略";
+      ignoreButton.textContent = t("ignore");
       ignoreButton.disabled = report.status === "ignored";
       ignoreButton.addEventListener("click", () =>
         updateReportStatus(report.id, "ignored"),
@@ -511,7 +617,7 @@
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "is-danger";
-        deleteButton.textContent = "Delete comment / 删除评论";
+        deleteButton.textContent = t("deleteComment");
         deleteButton.addEventListener("click", () =>
           deleteReportedComment(comment.id),
         );
@@ -525,11 +631,11 @@
     const visible = visibleBans();
     bansRoot.replaceChildren();
     if (!getToken()) {
-      bansRoot.innerHTML = `<div class="ya-empty">Please enter ADMIN_TOKEN. / 请先输入 ADMIN_TOKEN。</div>`;
+      bansRoot.innerHTML = `<div class="ya-empty">${t("noToken")}</div>`;
       return;
     }
     if (!visible.length) {
-      bansRoot.innerHTML = `<div class="ya-empty">No matching bans. / 没有匹配的封禁来源。</div>`;
+      bansRoot.innerHTML = `<div class="ya-empty">${t("noBans")}</div>`;
       return;
     }
 
@@ -542,20 +648,21 @@
       article.innerHTML = `
         <header>
           <div>
-            <h2>${ban.type === "ip" ? "IP hash" : "Device fingerprint"}</h2>
-            <p>${escapeHtml(shortHash(ban.valueHash))}</p>
+            <h2>${ban.type === "both" ? t("both") : ban.type === "ip" ? t("ipHash") : t("deviceFingerprint")}</h2>
+            ${ban.ipValueHash ? `<p>${t("ipHash")}: ${escapeHtml(shortHash(ban.ipValueHash))}</p>` : ""}
+            ${ban.deviceValueHash ? `<p>${t("device")}: ${escapeHtml(shortHash(ban.deviceValueHash))}</p>` : ""}
           </div>
           <div>
-            <span class="status status-ban-${ban.type}">${ban.type === "ip" ? "IP" : "Device"}</span>
-            <span class="status status-ban-${expired ? "expired" : "active"}">${expired ? "Expired" : "Active"}</span>
+            ${ban.type === "both" ? `<span class="status status-ban-ip">IP</span><span class="status status-ban-device">${t("device")}</span>` : `<span class="status status-ban-${ban.type}">${ban.type === "ip" ? "IP" : t("device")}</span>`}
+            <span class="status status-ban-${expired ? "expired" : "active"}">${expired ? t("expired") : t("active")}</span>
           </div>
         </header>
         <dl>
-          <div><dt>Reason</dt><dd>${escapeHtml(ban.reason || "")}</dd></div>
-          <div><dt>Created at</dt><dd>${escapeHtml(formatLocalTime(ban.createdAt))}</dd></div>
-          <div><dt>Expires at</dt><dd>${ban.expiresAt ? escapeHtml(formatLocalTime(ban.expiresAt)) : "Permanent"}</dd></div>
-          <div><dt>Source comment ID</dt><dd>${escapeHtml(ban.sourceCommentId || "Unavailable")}</dd></div>
-          <div><dt>Source author</dt><dd>${escapeHtml(ban.sourceCommentAuthor || "Unavailable")}</dd></div>
+          <div><dt>${t("reason")}</dt><dd>${escapeHtml(banReasonLabel(ban.reason || ""))}</dd></div>
+          <div><dt>${t("createdAt")}</dt><dd>${escapeHtml(formatLocalTime(ban.createdAt))}</dd></div>
+          <div><dt>${t("expiresAt")}</dt><dd>${ban.expiresAt ? escapeHtml(formatLocalTime(ban.expiresAt)) : t("permanent")}</dd></div>
+          <div><dt>${t("sourceCommentId")}</dt><dd>${escapeHtml(ban.sourceCommentId || t("unavailable"))}</dd></div>
+          <div><dt>${t("sourceAuthor")}</dt><dd>${escapeHtml(ban.sourceCommentAuthor || t("unavailable"))}</dd></div>
         </dl>
         ${
           ban.sourceCommentContentPreview
@@ -567,8 +674,8 @@
       const unbanButton = document.createElement("button");
       unbanButton.type = "button";
       unbanButton.className = "is-danger";
-      unbanButton.textContent = "Unban / 解除封禁";
-      unbanButton.addEventListener("click", () => unbanSource(ban.id));
+      unbanButton.textContent = t("unban");
+      unbanButton.addEventListener("click", () => unbanSource(ban.ids));
       article.querySelector("footer").append(unbanButton);
       bansRoot.append(article);
     });
@@ -582,7 +689,7 @@
       renderComments();
       return;
     }
-    showMessage("正在加载...");
+    showMessage(t("loading"));
     try {
       const response = await fetch(`${apiBase}/api/admin/comments`, {
         headers: {
@@ -592,7 +699,7 @@
       });
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.comments)) {
-        throw new Error(data.message || "评论加载失败。");
+        throw new Error(data.message || t("commentsLoadFailed"));
       }
       comments = data.comments;
       await prepareCommentRendering();
@@ -600,7 +707,7 @@
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "评论加载失败。");
+      showMessage(error instanceof Error ? error.message : t("commentsLoadFailed"));
     }
   }
 
@@ -612,7 +719,7 @@
       renderReports();
       return;
     }
-    showMessage("正在加载...");
+    showMessage(t("loading"));
     try {
       const response = await fetch(
         `${apiBase}/api/admin/reports?status=${encodeURIComponent(activeReportStatus)}`,
@@ -625,7 +732,7 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.reports)) {
-        throw new Error(data.message || "Reports failed to load. / 举报加载失败。");
+        throw new Error(data.message || t("reportsLoadFailed"));
       }
       reports = data.reports;
       await prepareCommentRendering();
@@ -634,7 +741,7 @@
       renderReports();
     } catch (error) {
       showMessage(
-        error instanceof Error ? error.message : "Reports failed to load. / 举报加载失败。",
+        error instanceof Error ? error.message : t("reportsLoadFailed"),
       );
     }
   }
@@ -647,7 +754,7 @@
       renderBans();
       return;
     }
-    showMessage("Loading bans... / 正在加载封禁来源...");
+    showMessage(t("loadingBans"));
     try {
       const response = await fetch(`${apiBase}/api/admin/bans`, {
         headers: {
@@ -657,14 +764,14 @@
       });
       const data = await response.json();
       if (!response.ok || !data.ok || !Array.isArray(data.bans)) {
-        throw new Error(data.message || "Bans failed to load.");
+        throw new Error(data.message || t("bansLoadFailed"));
       }
       bans = data.bans;
       showMessage("");
       renderFilters();
       renderBans();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Bans failed to load.");
+      showMessage(error instanceof Error ? error.message : t("bansLoadFailed"));
     }
   }
 
@@ -685,7 +792,7 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "状态更新失败。");
+        throw new Error(data.message || t("statusUpdateFailed"));
       }
       comments = comments.map((comment) =>
         comment.id === id ? { ...comment, status } : comment,
@@ -693,7 +800,7 @@
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "状态更新失败。");
+      showMessage(error instanceof Error ? error.message : t("statusUpdateFailed"));
     }
   }
 
@@ -737,7 +844,7 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Spam & ban failed.");
+        throw new Error(data.message || t("spamBanFailed"));
       }
 
       comments = comments.map((comment) =>
@@ -746,8 +853,8 @@
       const skipped = Array.isArray(data.skipped) ? data.skipped : [];
       showMessage(
         skipped.length > 0
-          ? `Comment was marked as spam, but some bans were skipped: ${skipped.join(", ")}.`
-          : data.message || "Comment marked as spam and source banned.",
+          ? `${t("spamBanSkipped")} ${skipped.join(", ")}.`
+          : t("spamBanSuccess"),
       );
       spamBanDialog.close();
       spamBanCommentId = null;
@@ -755,20 +862,54 @@
       renderComments();
     } catch (error) {
       spamBanFeedback.textContent =
-        error instanceof Error ? error.message : "Spam & ban failed.";
+        error instanceof Error ? error.message : t("spamBanFailed");
     } finally {
       submitButton.disabled = false;
     }
   }
 
+  function groupBans() {
+    const groups = new Map();
+    bans.forEach((ban) => {
+      const key = ban.sourceCommentId
+        ? ["source", ban.sourceCommentId, ban.reason || "", ban.expiresAt || ""].join("|")
+        : [
+            "orphan",
+            ban.reason || "",
+            ban.createdAt,
+            ban.expiresAt || "",
+            ban.sourceCommentAuthor || "",
+            ban.sourceCommentContentPreview || "",
+          ].join("|");
+      const group = groups.get(key) || {
+        ...ban,
+        ids: [],
+        ipValueHash: null,
+        deviceValueHash: null,
+      };
+      group.ids.push(ban.id);
+      if (ban.type === "ip") group.ipValueHash = ban.valueHash;
+      if (ban.type === "device") group.deviceValueHash = ban.valueHash;
+      group.type =
+        group.ipValueHash && group.deviceValueHash
+          ? "both"
+          : group.ipValueHash
+            ? "ip"
+            : "device";
+      groups.set(key, group);
+    });
+    return [...groups.values()];
+  }
+
   function visibleBans() {
     const query = searchInput.value.trim().toLowerCase();
-    return bans.filter((ban) => {
+    return groupBans().filter((ban) => {
       return (
         !query ||
         [
           ban.type,
-          ban.valueHash,
+          ban.ipValueHash,
+          ban.deviceValueHash,
           ban.reason,
           ban.sourceCommentId,
           ban.sourceCommentAuthor,
@@ -798,7 +939,7 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Report status update failed. / 举报状态更新失败。");
+        throw new Error(data.message || t("reportStatusFailed"));
       }
       if (activeReportStatus === "all") {
         reports = reports.map((report) =>
@@ -813,41 +954,44 @@
       showMessage(
         error instanceof Error
           ? error.message
-          : "Report status update failed. / 举报状态更新失败。",
+          : t("reportStatusFailed"),
       );
     }
   }
 
-  async function unbanSource(id) {
-    if (!window.confirm("Unban this source? / 是否解除该来源的封禁？")) {
+  async function unbanSource(ids) {
+    if (!window.confirm(t("unbanConfirm"))) {
       return;
     }
 
     try {
-      const response = await fetch(
-        `${apiBase}/api/admin/bans/${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${getToken()}`,
+      for (const id of ids) {
+        const response = await fetch(
+          `${apiBase}/api/admin/bans/${encodeURIComponent(id)}`,
+          {
+            method: "DELETE",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
           },
-        },
-      );
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Unban failed.");
+        );
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || t("unbanFailed"));
+        }
       }
-      bans = bans.filter((ban) => ban.id !== id);
-      showMessage(data.message || "Source unbanned.");
+      const removedIds = new Set(ids);
+      bans = bans.filter((ban) => !removedIds.has(ban.id));
+      showMessage(t("unbanned"));
       renderBans();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Unban failed.");
+      showMessage(error instanceof Error ? error.message : t("unbanFailed"));
     }
   }
 
   async function deleteComment(id) {
-    if (!window.confirm("确定要永久删除这条评论吗？此操作不可恢复。")) {
+    if (!window.confirm(t("deleteConfirm"))) {
       return;
     }
 
@@ -865,19 +1009,19 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "评论删除失败。");
+        throw new Error(data.message || t("commentDeleteFailed"));
       }
       comments = comments.filter((comment) => comment.id !== id);
-      showMessage("评论已永久删除。");
+      showMessage(t("commentDeleted"));
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "评论删除失败。");
+      showMessage(error instanceof Error ? error.message : t("commentDeleteFailed"));
     }
   }
 
   async function deleteReportedComment(id) {
-    if (!window.confirm("Delete this reported comment permanently? / 确定要永久删除这条被举报评论吗？")) {
+    if (!window.confirm(t("deleteReportedConfirm"))) {
       return;
     }
 
@@ -895,14 +1039,14 @@
       );
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Comment deletion failed. / 评论删除失败。");
+        throw new Error(data.message || t("commentDeleteFailed"));
       }
-      showMessage("Reported comment deleted. / 被举报评论已删除。");
+      showMessage(t("reportedCommentDeleted"));
       comments = comments.filter((comment) => comment.id !== id);
       await loadReports();
     } catch (error) {
       showMessage(
-        error instanceof Error ? error.message : "Comment deletion failed. / 评论删除失败。",
+        error instanceof Error ? error.message : t("commentDeleteFailed"),
       );
     }
   }
@@ -942,6 +1086,11 @@
       renderBans();
     }
   });
+  languageToggle.addEventListener("click", () => {
+    activeLanguage = activeLanguage === "en" ? "zh-CN" : "en";
+    localStorage.setItem(languageStorageKey, activeLanguage);
+    applyLanguage();
+  });
   spamBanForm.addEventListener("change", () => {
     const selectedReason = new FormData(spamBanForm).get("banReason");
     customReasonField.hidden = selectedReason !== "Other";
@@ -960,6 +1109,6 @@
     spamBanCommentId = null;
     spamBanFeedback.textContent = "";
   });
-  renderViewTabs();
+  applyLanguage();
   void loadComments();
 })();
