@@ -464,6 +464,26 @@ pnpm db:migrate:local
 如果没有执行这次 migration，评论列表或后台可能会提示点赞数据表不存在。
 If this migration has not been applied, the comment list or dashboard may report that the likes table is missing.
 
+### Upgrade From v0.1.4 To v0.1.5
+
+v0.1.5 adds comment source bans, the `comment_bans` D1 table, and the `device_fingerprint` comment column.
+
+Existing deployments must apply the new migration before using the v0.1.5 Worker. To apply only the database change, run:
+
+```powershell
+pnpm db:migrate:remote
+```
+
+Applying only the migration does not deploy the Worker or generate updated static assets.
+
+The recommended complete upgrade command performs the migration, deploys the Worker, and generates the updated frontend and Admin assets:
+
+```powershell
+pnpm deploy:backend
+```
+
+After deployment, publish the generated `dist/frontend/` and `dist/admin/` directories. The Admin dashboard includes the Spam & Ban dialog, Bans view, grouped Both cards, unban actions, and English/Chinese language switching.
+
 ## 14. 常见问题
 
 ## 14. Troubleshooting

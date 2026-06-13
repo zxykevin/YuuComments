@@ -96,6 +96,8 @@ The widget and admin dashboard are static assets. The Worker handles writes, mod
 - Ban target selection: IP hash, device fingerprint, or both / 可选择封禁 IP hash、设备指纹或同时封禁
 - Ban reason presets / 封禁原因预设
 - Admin Bans view for reviewing blocked sources / 后台封禁来源管理视图
+- Grouped Both cards for related IP and device bans / 关联的 IP 与设备封禁合并显示
+- English and Chinese Admin language switch / 后台中英文语言切换
 - IP hash and device fingerprint ban support / 支持 IP hash 和设备指纹封禁
 - Block banned sources before comment creation / 创建评论前拦截已封禁来源
 - Search by nickname, content, email, or page path / 按昵称、内容、邮箱或页面路径搜索
@@ -244,6 +246,7 @@ YuuComments 仍处于早期开发阶段。当前重点是可靠性、审核流�
 - [x] Anonymous likes
 - [x] Comment report system
 - [x] Markdown comments and LaTeX math rendering
+- [x] Spam & Ban moderation with IP hash and device fingerprint bans
 
 ### Planned before v1.0
 

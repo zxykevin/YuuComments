@@ -158,10 +158,19 @@
   }
 
   function formatLocalTime(value) {
-    const date = new Date(value);
+    const date = parseDatabaseTime(value);
     return Number.isNaN(date.getTime())
       ? value
       : date.toLocaleString(activeLanguage);
+  }
+
+  function parseDatabaseTime(value) {
+    if (typeof value !== "string") return new Date(value);
+    const normalized =
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+        ? `${value.replace(" ", "T")}Z`
+        : value;
+    return new Date(normalized);
   }
 
   function getToken() {
@@ -641,7 +650,7 @@
 
     visible.forEach((ban) => {
       const expired = ban.expiresAt
-        ? new Date(ban.expiresAt).getTime() <= Date.now()
+        ? parseDatabaseTime(ban.expiresAt).getTime() <= Date.now()
         : false;
       const article = document.createElement("article");
       article.className = "ya-card";
@@ -987,6 +996,7 @@
       renderBans();
     } catch (error) {
       showMessage(error instanceof Error ? error.message : t("unbanFailed"));
+      await loadBans();
     }
   }
 
