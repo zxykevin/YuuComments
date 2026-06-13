@@ -89,6 +89,130 @@ button.is-danger {
   color: #b91c1c;
 }
 
+.status-ban-ip {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.status-ban-device {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.status-ban-active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-ban-expired {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.ya-dialog {
+  width: min(calc(100% - 2rem), 42rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid var(--ya-border);
+  border-radius: 12px;
+  background: var(--ya-surface);
+  color: var(--ya-text);
+  padding: 0;
+}
+
+.ya-dialog::backdrop {
+  background: rgb(15 23 42 / 55%);
+}
+
+.ya-dialog form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.ya-dialog header,
+.ya-dialog footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ya-dialog h2,
+.ya-dialog p {
+  margin: 0;
+}
+
+.ya-dialog fieldset {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.ya-dialog legend {
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+
+.ya-choice-grid,
+.ya-reason-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.ya-choice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.6rem;
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.ya-choice input {
+  grid-row: 1 / 3;
+}
+
+.ya-choice:has(input:checked) {
+  border-color: var(--ya-accent);
+  background: #eff6ff;
+}
+
+.ya-choice span {
+  color: var(--ya-muted);
+  font-size: 0.85rem;
+}
+
+.ya-reason-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ya-reason-grid label {
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  padding: 0.55rem;
+  cursor: pointer;
+}
+
+.ya-reason-grid label:has(input:checked) {
+  border-color: var(--ya-accent);
+  background: #eff6ff;
+}
+
+.ya-dialog input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--ya-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+}
+
+.ya-dialog-feedback {
+  min-height: 1.25rem;
+  color: #b91c1c;
+}
+
 .ya-filters {
   display: flex;
   flex-wrap: wrap;
@@ -324,6 +448,10 @@ button.is-danger {
   .ya-filters {
     grid-column: 1 / -1;
   }
+
+  .ya-choice-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -332,5 +460,9 @@ button.is-danger {
   .ya-card dl {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .ya-reason-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

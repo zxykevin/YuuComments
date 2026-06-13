@@ -92,6 +92,10 @@ The widget and admin dashboard are static assets. The Worker handles writes, mod
 - Automatic return to pending review after repeated reports / 多次举报后自动转回待审核
 - Admin dashboard for comments, reports, status changes, and search / 后台管理评论、举报、状态和搜索
 - Admin spam & ban workflow / 后台标记垃圾并封禁来源
+- Button-based Spam & Ban dialog / 按钮式“标记垃圾并封禁”对话框
+- Ban target selection: IP hash, device fingerprint, or both / 可选择封禁 IP hash、设备指纹或同时封禁
+- Ban reason presets / 封禁原因预设
+- Admin Bans view for reviewing blocked sources / 后台封禁来源管理视图
 - IP hash and device fingerprint ban support / 支持 IP hash 和设备指纹封禁
 - Block banned sources before comment creation / 创建评论前拦截已封禁来源
 - Search by nickname, content, email, or page path / 按昵称、内容、邮箱或页面路径搜索
@@ -162,6 +166,8 @@ POST   /api/admin/comments/:id/spam-ban
 DELETE /api/admin/comments/:id
 GET    /api/admin/reports
 PATCH  /api/admin/reports/:id/status
+GET    /api/admin/bans
+DELETE /api/admin/bans/:id
 ```
 
 ## Framework Examples / 框架示例

@@ -10,6 +10,10 @@ This release improves spam moderation with source bans.
 - Added device fingerprint ban support.
 - Added ban checks before comment creation.
 - Improved the moderation workflow for spam comments.
+- Improved Spam & Ban UI with button-based target and reason selection.
+- Added Admin Bans view for reviewing blocked IP/device bans.
+- Added `GET /api/admin/bans`.
+- Added `DELETE /api/admin/bans/:id` for unbanning sources.
 
 Device fingerprints are lightweight SHA-256 hashes generated in the browser from common browser and screen properties. Raw device information is not sent to the backend.
 
@@ -17,6 +21,8 @@ Device fingerprints are lightweight SHA-256 hashes generated in the browser from
 
 ```text
 POST /api/admin/comments/:id/spam-ban
+GET /api/admin/bans
+DELETE /api/admin/bans/:id
 ```
 
 Example request:

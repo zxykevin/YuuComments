@@ -1,4 +1,5 @@
 import type { Env } from "./types";
+import { deleteAdminBan, getAdminBans } from "./routes/adminBans";
 import {
   deleteAdminComment,
   getAdminComments,
@@ -84,6 +85,22 @@ export default {
           {
             ok: false,
             message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      if (url.pathname === "/api/admin/bans") {
+        if (request.method === "GET") {
+          const response = await getAdminBans(request, env);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "Method not allowed.",
           },
           405,
         );
@@ -219,6 +236,23 @@ export default {
           {
             ok: false,
             message: "方法不允许",
+          },
+          405,
+        );
+      }
+
+      const adminBanMatch = url.pathname.match(/^\/api\/admin\/bans\/([^/]+)$/);
+      if (adminBanMatch) {
+        if (request.method === "DELETE") {
+          const response = await deleteAdminBan(request, env, adminBanMatch[1]);
+          return withCors(request, response);
+        }
+
+        return jsonResponse(
+          request,
+          {
+            ok: false,
+            message: "Method not allowed.",
           },
           405,
         );

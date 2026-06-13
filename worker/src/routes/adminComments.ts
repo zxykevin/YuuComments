@@ -288,6 +288,7 @@ export async function spamAndBanAdminComment(
     ok: true,
     status: "spam",
     bans,
+    skipped,
     message:
       skipped.length > 0
         ? `Comment marked as spam. Skipped: ${skipped.join(", ")}.`

@@ -40,8 +40,15 @@
   const viewTabs = document.querySelector("[data-view-tabs]");
   const commentsRoot = document.querySelector("[data-comments]");
   const reportsRoot = document.querySelector("[data-reports]");
+  const bansRoot = document.querySelector("[data-bans]");
+  const spamBanDialog = document.querySelector("[data-spam-ban-dialog]");
+  const spamBanForm = document.querySelector("[data-spam-ban-form]");
+  const spamBanFeedback = document.querySelector("[data-spam-ban-feedback]");
+  const customReasonField = document.querySelector("[data-custom-reason]");
   let comments = [];
   let reports = [];
+  let bans = [];
+  let spamBanCommentId = null;
   let activeView = "comments";
   let activeStatus = "";
   let activeReportStatus = "open";
@@ -254,6 +261,7 @@
     [
       { label: "Comments / 评论", value: "comments" },
       { label: "Reports / 举报", value: "reports" },
+      { label: "Bans / 封禁来源", value: "bans" },
     ].forEach(({ label, value }) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -263,12 +271,15 @@
         activeView = value;
         commentsRoot.hidden = activeView !== "comments";
         reportsRoot.hidden = activeView !== "reports";
+        bansRoot.hidden = activeView !== "bans";
         renderViewTabs();
         renderFilters();
         if (activeView === "comments") {
           renderComments();
-        } else {
+        } else if (activeView === "reports") {
           void loadReports();
+        } else {
+          void loadBans();
         }
       });
       viewTabs.append(button);
@@ -278,6 +289,10 @@
   function renderFilters() {
     if (activeView === "reports") {
       renderReportFilters();
+      return;
+    }
+    if (activeView === "bans") {
+      filters.replaceChildren();
       return;
     }
 
@@ -506,6 +521,59 @@
     });
   }
 
+  function renderBans() {
+    const visible = visibleBans();
+    bansRoot.replaceChildren();
+    if (!getToken()) {
+      bansRoot.innerHTML = `<div class="ya-empty">Please enter ADMIN_TOKEN. / 请先输入 ADMIN_TOKEN。</div>`;
+      return;
+    }
+    if (!visible.length) {
+      bansRoot.innerHTML = `<div class="ya-empty">No matching bans. / 没有匹配的封禁来源。</div>`;
+      return;
+    }
+
+    visible.forEach((ban) => {
+      const expired = ban.expiresAt
+        ? new Date(ban.expiresAt).getTime() <= Date.now()
+        : false;
+      const article = document.createElement("article");
+      article.className = "ya-card";
+      article.innerHTML = `
+        <header>
+          <div>
+            <h2>${ban.type === "ip" ? "IP hash" : "Device fingerprint"}</h2>
+            <p>${escapeHtml(shortHash(ban.valueHash))}</p>
+          </div>
+          <div>
+            <span class="status status-ban-${ban.type}">${ban.type === "ip" ? "IP" : "Device"}</span>
+            <span class="status status-ban-${expired ? "expired" : "active"}">${expired ? "Expired" : "Active"}</span>
+          </div>
+        </header>
+        <dl>
+          <div><dt>Reason</dt><dd>${escapeHtml(ban.reason || "")}</dd></div>
+          <div><dt>Created at</dt><dd>${escapeHtml(formatLocalTime(ban.createdAt))}</dd></div>
+          <div><dt>Expires at</dt><dd>${ban.expiresAt ? escapeHtml(formatLocalTime(ban.expiresAt)) : "Permanent"}</dd></div>
+          <div><dt>Source comment ID</dt><dd>${escapeHtml(ban.sourceCommentId || "Unavailable")}</dd></div>
+          <div><dt>Source author</dt><dd>${escapeHtml(ban.sourceCommentAuthor || "Unavailable")}</dd></div>
+        </dl>
+        ${
+          ban.sourceCommentContentPreview
+            ? `<div class="ya-content">${escapeHtml(ban.sourceCommentContentPreview)}</div>`
+            : ""
+        }
+        <footer></footer>
+      `;
+      const unbanButton = document.createElement("button");
+      unbanButton.type = "button";
+      unbanButton.className = "is-danger";
+      unbanButton.textContent = "Unban / 解除封禁";
+      unbanButton.addEventListener("click", () => unbanSource(ban.id));
+      article.querySelector("footer").append(unbanButton);
+      bansRoot.append(article);
+    });
+  }
+
   async function loadComments() {
     const token = getToken();
     if (!token) {
@@ -571,6 +639,35 @@
     }
   }
 
+  async function loadBans() {
+    const token = getToken();
+    if (!token) {
+      bans = [];
+      renderFilters();
+      renderBans();
+      return;
+    }
+    showMessage("Loading bans... / 正在加载封禁来源...");
+    try {
+      const response = await fetch(`${apiBase}/api/admin/bans`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok || !Array.isArray(data.bans)) {
+        throw new Error(data.message || "Bans failed to load.");
+      }
+      bans = data.bans;
+      showMessage("");
+      renderFilters();
+      renderBans();
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Bans failed to load.");
+    }
+  }
+
   async function updateStatus(id, status) {
     const token = getToken();
     try {
@@ -600,43 +697,41 @@
     }
   }
 
-  async function spamAndBanComment(id) {
-    if (
-      !window.confirm(
-        "Mark this comment as spam and ban this source? / 是否将该评论标记为垃圾并封禁来源？",
-      )
-    ) {
-      return;
-    }
+  function spamAndBanComment(id) {
+    spamBanCommentId = id;
+    spamBanForm.reset();
+    spamBanFeedback.textContent = "";
+    customReasonField.hidden = true;
+    spamBanDialog.showModal();
+  }
 
-    const target = (
-      window.prompt("Ban target: ip / device / both", "device") || ""
-    )
-      .trim()
-      .toLowerCase();
-    if (!["ip", "device", "both"].includes(target)) {
-      showMessage("Invalid ban target. Use ip, device, or both.");
-      return;
-    }
+  async function submitSpamAndBan() {
+    if (!spamBanCommentId) return;
 
-    const reason = window.prompt("Ban reason", "Spam comment");
-    if (reason === null) return;
+    const formData = new FormData(spamBanForm);
+    const target = String(formData.get("banTarget") || "device");
+    const selectedReason = String(formData.get("banReason") || "Spam");
+    const customReason = String(formData.get("customReason") || "").trim();
+    const reason =
+      selectedReason === "Other" ? customReason || "Other" : selectedReason;
+    const submitButton = spamBanForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    spamBanFeedback.textContent = "";
 
-    const token = getToken();
     try {
       const response = await fetch(
-        `${apiBase}/api/admin/comments/${encodeURIComponent(id)}/spam-ban`,
+        `${apiBase}/api/admin/comments/${encodeURIComponent(spamBanCommentId)}/spam-ban`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${getToken()}`,
           },
           body: JSON.stringify({
             banIp: target === "ip" || target === "both",
             banDevice: target === "device" || target === "both",
-            reason: reason.trim() || "Spam comment",
+            reason,
           }),
         },
       );
@@ -644,15 +739,46 @@
       if (!response.ok || !data.ok) {
         throw new Error(data.message || "Spam & ban failed.");
       }
+
       comments = comments.map((comment) =>
-        comment.id === id ? { ...comment, status: "spam" } : comment,
+        comment.id === spamBanCommentId ? { ...comment, status: "spam" } : comment,
       );
-      showMessage(data.message || "Comment marked as spam and source banned.");
+      const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+      showMessage(
+        skipped.length > 0
+          ? `Comment was marked as spam, but some bans were skipped: ${skipped.join(", ")}.`
+          : data.message || "Comment marked as spam and source banned.",
+      );
+      spamBanDialog.close();
+      spamBanCommentId = null;
       renderFilters();
       renderComments();
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "Spam & ban failed.");
+      spamBanFeedback.textContent =
+        error instanceof Error ? error.message : "Spam & ban failed.";
+    } finally {
+      submitButton.disabled = false;
     }
+  }
+
+  function visibleBans() {
+    const query = searchInput.value.trim().toLowerCase();
+    return bans.filter((ban) => {
+      return (
+        !query ||
+        [
+          ban.type,
+          ban.valueHash,
+          ban.reason,
+          ban.sourceCommentId,
+          ban.sourceCommentAuthor,
+          ban.sourceCommentContentPreview,
+        ]
+          .join("\n")
+          .toLowerCase()
+          .includes(query)
+      );
+    });
   }
 
   async function updateReportStatus(id, status) {
@@ -689,6 +815,34 @@
           ? error.message
           : "Report status update failed. / 举报状态更新失败。",
       );
+    }
+  }
+
+  async function unbanSource(id) {
+    if (!window.confirm("Unban this source? / 是否解除该来源的封禁？")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${apiBase}/api/admin/bans/${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+        },
+      );
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Unban failed.");
+      }
+      bans = bans.filter((ban) => ban.id !== id);
+      showMessage(data.message || "Source unbanned.");
+      renderBans();
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "Unban failed.");
     }
   }
 
@@ -773,16 +927,38 @@
     localStorage.setItem(storageKey, tokenInput.value.trim());
     if (activeView === "comments") {
       void loadComments();
-    } else {
+    } else if (activeView === "reports") {
       void loadReports();
+    } else {
+      void loadBans();
     }
   });
   searchInput.addEventListener("input", () => {
     if (activeView === "comments") {
       renderComments();
-    } else {
+    } else if (activeView === "reports") {
       renderReports();
+    } else {
+      renderBans();
     }
+  });
+  spamBanForm.addEventListener("change", () => {
+    const selectedReason = new FormData(spamBanForm).get("banReason");
+    customReasonField.hidden = selectedReason !== "Other";
+  });
+  spamBanForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitSpamAndBan();
+  });
+  document.querySelector("[data-spam-ban-cancel]").addEventListener("click", () => {
+    spamBanDialog.close();
+  });
+  document.querySelector("[data-spam-ban-close]").addEventListener("click", () => {
+    spamBanDialog.close();
+  });
+  spamBanDialog.addEventListener("close", () => {
+    spamBanCommentId = null;
+    spamBanFeedback.textContent = "";
   });
   renderViewTabs();
   void loadComments();
