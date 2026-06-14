@@ -484,6 +484,22 @@ pnpm deploy:backend
 
 After deployment, publish the generated `dist/frontend/` and `dist/admin/` directories. The Admin dashboard includes the Spam & Ban dialog, Bans view, grouped Both cards, unban actions, and English/Chinese language switching.
 
+If you only need to regenerate static assets from the current source without deploying the Worker, run:
+
+```powershell
+pnpm build
+```
+
+This command refreshes `dist/frontend/`, `dist/admin/`, and `dist/astro/`. It also verifies that the generated comment widget contains the v0.1.5 device fingerprint submission logic. Because `dist/` is not committed to Git, run this command after cloning when you need publishable static assets.
+
+如果只需要从当前源码重新生成静态资源，而不部署 Worker，请运行：
+
+```powershell
+pnpm build
+```
+
+该命令会刷新 `dist/frontend/`、`dist/admin/` 和 `dist/astro/`，并检查生成的评论组件是否包含 v0.1.5 设备指纹提交逻辑。`dist/` 不会提交到 Git，因此克隆仓库后如需可发布的静态资源，请运行该命令。生成生产资源前，请先设置 `PUBLIC_COMMENTS_API_BASE_URL` 和 `PUBLIC_TURNSTILE_SITE_KEY`。
+
 ## 14. 常见问题
 
 ## 14. Troubleshooting

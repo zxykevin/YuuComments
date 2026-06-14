@@ -6,6 +6,7 @@
   "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "wrangler dev --config worker/wrangler.toml",
+    "build": "tsx scripts/build-assets.ts",
     "deploy": "wrangler deploy --config worker/wrangler.toml",
     "deploy:backend": "tsx scripts/deploy-backend.ts",
     "setup": "node ./worker/setup.js",

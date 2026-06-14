@@ -144,6 +144,10 @@ Then publish / 然后发布：
 - `dist/frontend/` to `/comments/`
 - `dist/admin/` to `/admin/`
 
+To regenerate static assets without deploying the Worker, run `pnpm build`. Set `PUBLIC_COMMENTS_API_BASE_URL` and `PUBLIC_TURNSTILE_SITE_KEY` first when generating production assets. The command always copies the current frontend and Admin source into `dist/` and verifies that the v0.1.5 device fingerprint submission logic is present.
+
+如需在不部署 Worker 的情况下重新生成静态资源，请运行 `pnpm build`。生成生产资源前，请先设置 `PUBLIC_COMMENTS_API_BASE_URL` 和 `PUBLIC_TURNSTILE_SITE_KEY`。该命令会把当前前端和后台源码复制到 `dist/`，并检查 v0.1.5 设备指纹提交逻辑是否存在。
+
 Markdown comments and LaTeX math rendering are frontend-only. Comment content is stored as the original Markdown text; no extra backend migration is required for Markdown or math rendering.
 
 Markdown 评论和 LaTeX 公式仅在前端渲染。评论内容以原始 Markdown 文本存储；Markdown 和公式渲染不需要额外后端 migration。

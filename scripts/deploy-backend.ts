@@ -6,6 +6,7 @@ import path from "node:path";
 import { Writable } from "node:stream";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { buildStaticAssets } from "./static-assets";
 
 type D1Config = {
   binding: string;
@@ -33,13 +34,6 @@ const workerRoot = path.join(repoRoot, "worker");
 const wranglerConfigPath = path.join(workerRoot, "wrangler.toml");
 const wranglerExamplePath = path.join(workerRoot, "wrangler.toml.example");
 const wranglerConfigArg = "worker/wrangler.toml";
-const frontendRoot = path.join(repoRoot, "frontend");
-const frontendSourceRoot = path.join(repoRoot, "frontend", "vanilla");
-const frontendDistRoot = path.join(repoRoot, "dist", "frontend");
-const astroSourceRoot = path.join(repoRoot, "frontend", "astro");
-const astroDistRoot = path.join(repoRoot, "dist", "astro");
-const adminSourceRoot = path.join(repoRoot, "admin");
-const adminDistRoot = path.join(repoRoot, "dist", "admin");
 const corsSourcePath = path.join(workerRoot, "src", "utils", "cors.ts");
 let workerExists = true;
 
@@ -602,39 +596,6 @@ function getWorkerUrlFromDeployOutput(lines: string[]) {
   }) ?? null;
 }
 
-function newFrontendBundle(workerUrl: string, turnstileSiteKey: string) {
-  ensureDirectory(frontendDistRoot);
-  copyFileSync(path.join(frontendSourceRoot, "comments.js"), path.join(frontendDistRoot, "comments.js"));
-  copyFileSync(path.join(frontendSourceRoot, "comments.css"), path.join(frontendDistRoot, "comments.css"));
-  copyFileSync(path.join(frontendRoot, "embed.html"), path.join(frontendDistRoot, "embed.html"));
-  copyFileSync(path.join(frontendRoot, "embed-resize.js"), path.join(frontendDistRoot, "embed-resize.js"));
-  copyFileSync(path.join(frontendRoot, "yuucomments-embed.js"), path.join(frontendDistRoot, "yuucomments-embed.js"));
-
-  const config = `window.YuuCommentsConfig = {
-  apiBase: "${workerUrl}",
-  turnstileSiteKey: "${turnstileSiteKey}"
-};
-`;
-  const configPath = path.join(frontendDistRoot, "yuucomments.config.js");
-  setUtf8File(configPath, config);
-  invokeCheckedCommand("Checking generated frontend config syntax", nodeInvocation, ["--check", configPath]);
-}
-
-function newAstroBundle() {
-  ensureDirectory(astroDistRoot);
-  copyFileSync(path.join(astroSourceRoot, "YuuComments.astro"), path.join(astroDistRoot, "YuuComments.astro"));
-  copyFileSync(path.join(astroSourceRoot, "YuuCommentsIframe.astro"), path.join(astroDistRoot, "YuuCommentsIframe.astro"));
-}
-
-function newAdminBundle(workerUrl: string) {
-  ensureDirectory(adminDistRoot);
-  copyFileSync(path.join(adminSourceRoot, "admin.js"), path.join(adminDistRoot, "admin.js"));
-  copyFileSync(path.join(adminSourceRoot, "admin.css"), path.join(adminDistRoot, "admin.css"));
-
-  const adminHtml = readFileSync(path.join(adminSourceRoot, "index.html"), "utf8").replace('data-api-base=""', `data-api-base="${workerUrl}"`);
-  setUtf8File(path.join(adminDistRoot, "index.html"), adminHtml);
-}
-
 function ensureDirectory(directory: string) {
   if (!existsSync(directory)) {
     mkdirSync(directory, { recursive: true });
@@ -895,9 +856,10 @@ async function main() {
     throw new Error("Worker API URL could not be detected; frontend bundle was not generated.");
   }
 
-  newFrontendBundle(workerUrl, publicTurnstileSiteKey);
-  newAstroBundle();
-  newAdminBundle(workerUrl);
+  buildStaticAssets({ workerUrl, turnstileSiteKey: publicTurnstileSiteKey });
+  invokeCheckedCommand("Checking generated frontend script syntax", nodeInvocation, ["--check", "dist/frontend/comments.js"]);
+  invokeCheckedCommand("Checking generated frontend config syntax", nodeInvocation, ["--check", "dist/frontend/yuucomments.config.js"]);
+  invokeCheckedCommand("Checking generated Admin script syntax", nodeInvocation, ["--check", "dist/admin/admin.js"]);
 
   console.log("");
   console.log("Backend deployment completed.");
