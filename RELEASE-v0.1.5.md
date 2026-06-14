@@ -18,6 +18,8 @@ This release improves spam moderation with source bans.
 - Added `DELETE /api/admin/bans/:id` for unbanning sources.
 - Added English and Chinese Admin UI switching with the selected language stored locally.
 - Combined related IP and device bans into one Both card in the Admin Bans view.
+- Added a repeatable `pnpm build` command for generating current frontend, Admin, and Astro assets.
+- Added generated asset verification to prevent publishing a comment widget without device fingerprint submission logic.
 
 ## 新功能
 
@@ -33,6 +35,8 @@ This release improves spam moderation with source bans.
 - 新增 `DELETE /api/admin/bans/:id`，用于解除来源封禁。
 - 新增后台中英文切换，并在本地保存所选语言。
 - 在后台 Bans 视图中，将关联的 IP 和设备封禁合并为一张 Both 卡片。
+- 新增可重复执行的 `pnpm build` 命令，用于生成当前版本的前端、后台和 Astro 静态资源。
+- 新增生成资源校验，防止发布缺少设备指纹提交逻辑的评论组件。
 
 Device fingerprints are lightweight SHA-256 hashes generated in the browser from common browser and screen properties. Raw device information is not sent to the backend.
 
